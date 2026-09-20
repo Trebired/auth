@@ -65,13 +65,13 @@ A permission key is `action:resource`, such as `view:platform.user`. A role list
 
 A scope may declare `aliases`, where one key stands for a list: a role holding `manage:platform.user` also holds every permission that alias names, and the alias itself still answers. `roleAliases` maps an old or external role key onto a declared one.
 
-Roles are declared weakest first. `rank(scope, roleKey)` returns that position, `outranks(scope, actor, target)` compares two roles, and an unknown role ranks last, so it outranks nothing.
+Roles are ordered one of two ways, chosen per scope with `rank`. Under `"declared"`, the default, they are declared weakest first and a role's rank is its position. Under `"privilege"`, a role's rank is how many permissions it holds after alias expansion, with `all` above every list; that is what a product needs when roles are created at runtime and have no place in a declaration order. `rank(scope, roleKey, entityId?)` returns the rank and `outranks(scope, actor, target, entityId?)` compares two roles. Both are asynchronous, because either role can come from storage, and an unknown role ranks weakest, so it outranks nothing.
 
 `declared(scope)` lists every permission the scope knows, taken from `declared` when given and from the roles and aliases otherwise. `validatePermissions(scope, permissions)` splits a list into `valid` and `invalid`, which is what a role editor needs before saving.
 
 ### Roles from storage
 
-Roles that are created at runtime never fit in a config file. `createAuth({ roles })` takes a provider, called with the scope, role key and entity id when the config does not declare that role. A resolved role reports `source: "config"` or `source: "provider"`. Provider roles run through the same alias expansion, so storage holds the same keys an editor shows.
+Roles that are created at runtime never fit in a config file. `createAuth({ roles })` takes a provider, called with the scope, role key and entity id when the config does not declare that role. A resolved role reports `source: "config"` or `source: "provider"`. Provider roles run through the same alias expansion, so storage holds the same keys an editor shows, and they are ranked like configured ones.
 
 ## Configuration
 

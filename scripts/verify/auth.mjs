@@ -132,13 +132,40 @@ async function verifyRoleEngine(dist, store) {
   assert.equal(await auth.can(stored, "view:organization.member", target), true, "a provider supplies roles the config does not");
   const resolved = await auth.permissions.resolveRole("organization", "stored_owner", "org9");
   assert.equal(resolved.source, "provider", "a provider role reports where it came from");
-  assert.equal(auth.permissions.outranks("platform", "admin", "viewer"), true, "a later role outranks an earlier one");
-  assert.equal(auth.permissions.outranks("platform", "viewer", "admin"), false, "an earlier role does not outrank a later one");
-  assert.equal(auth.permissions.rank("platform", "unknown_role"), Number.MAX_SAFE_INTEGER, "an unknown role ranks last");
+  assert.equal(await auth.permissions.outranks("platform", "admin", "viewer"), true, "a later role outranks an earlier one");
+  assert.equal(await auth.permissions.outranks("platform", "viewer", "admin"), false, "an earlier role does not outrank a later one");
+  assert.equal(await auth.permissions.outranks("platform", "unknown_role", "viewer"), false, "an unknown role outranks nothing");
+  assert.equal(await auth.permissions.rank("platform", "manager"), 1, "declared order is the rank");
   const check = auth.permissions.validatePermissions("platform", ["view:platform.user", "invent:platform.thing"]);
   assert.deepEqual(check.invalid, ["invent:platform.thing"], "undeclared permissions are reported");
   assert.equal(check.ok, false, "a role with an undeclared permission is invalid");
   assert.equal(auth.permissions.declared("platform").includes("create:platform.user"), true, "alias targets count as declared");
+  await verifyPrivilegeRank(dist, store);
+}
+
+async function verifyPrivilegeRank(dist, store) {
+  const auth = dist.createAuth({
+      config: {
+        permissions: {
+          platform: {
+            rank: "privilege",
+            roles: {
+              admin: { permissions: ["all"] },
+              editor: { permissions: ["view:platform.user", "delete:platform.user"] },
+              viewer: { permissions: ["view:platform.user"] },
+            },
+          },
+        },
+      },
+      roles: (scope, key) => (key === "auditor" ? { permissions: ["view:platform.user", "report:platform.user"] } : null),
+      secret: SECRET,
+      store,
+  });
+  assert.equal(await auth.permissions.outranks("platform", "editor", "viewer"), true, "more permissions outrank fewer");
+  assert.equal(await auth.permissions.outranks("platform", "viewer", "editor"), false, "fewer permissions do not outrank more");
+  assert.equal(await auth.permissions.outranks("platform", "admin", "editor"), true, "the wildcard outranks every list");
+  assert.equal(await auth.permissions.outranks("platform", "auditor", "viewer"), true, "a provider role is ranked like a configured one");
+  assert.equal(await auth.permissions.rank("platform", "unknown_role"), -1, "an unknown role ranks weakest");
 }
 
 async function verifyExpress(dist, express, auth, store) {

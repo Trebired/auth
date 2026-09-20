@@ -4,6 +4,12 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 0.3.0
+
+- Added a per-scope ranking strategy. `rank: "privilege"` ranks a role by how many permissions it holds after alias expansion, with `all` above every list, so roles created at runtime rank against configured ones without a declaration order. `rank: "declared"`, the default, keeps declaration order.
+- Changed `rank()` and `outranks()` to be asynchronous and to take an optional entity id, so a role held in storage is ranked like a configured one.
+- Fixed an unknown role ranking as the strongest role rather than the weakest.
+
 ## 0.2.0
 
 - Added permission aliases. A scope declares `aliases`, where one key stands for a list, so a role holding `manage:platform.user` holds every permission that alias names without the list being copied into the role. The alias itself still answers a check.

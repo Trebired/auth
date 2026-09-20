@@ -8,6 +8,8 @@ type RoleDefinition = {
   permissions: string[];
 };
 
+type RankStrategy = "declared" | "privilege";
+
 type ScopeOverride = {
   permission: string;
   scope: string;
@@ -17,6 +19,7 @@ type ScopeDefinition = {
   aliases?: Record<string, string[]>;
   declared?: string[];
   overriddenBy?: ScopeOverride[];
+  rank?: RankStrategy;
   roleAliases?: Record<string, string>;
   roles: Record<string, RoleDefinition>;
 };
@@ -148,6 +151,7 @@ export type {
   PasswordPolicy,
   PermissionCheckScope,
   PermissionRequirement,
+  RankStrategy,
   ResolvedRole,
   RoleDefinition,
   RoleProvider,
