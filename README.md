@@ -69,6 +69,10 @@ Roles are ordered one of two ways, chosen per scope with `rank`. Under `"declare
 
 `declared(scope)` lists every permission the scope knows: the `declared` list when given, the roles' permissions otherwise, and the alias keys in both cases. `validatePermissions(scope, permissions)` splits a list into `valid` and `invalid`, which is what a role editor needs before saving.
 
+### Where a role assignment lives
+
+By default a subject carries its own roles. When the assignment lives somewhere else, such as a membership row on the organization, pass `roleKey`: it is called with the subject, the scope and the entity id, and returns the role key for that pair. It may be asynchronous, so it can read the application's tables.
+
 ### Roles from storage
 
 Roles that are created at runtime never fit in a config file. `createAuth({ roles })` takes a provider, called with the scope, role key and entity id when the config does not declare that role. A resolved role reports `source: "config"` or `source: "provider"`. Provider roles run through the same alias expansion, so storage holds the same keys an editor shows, and they are ranked like configured ones.

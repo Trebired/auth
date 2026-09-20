@@ -1,5 +1,5 @@
 import { normalizers as normalize } from "@trebired/utils";
-import type { AuthConfig, AuthStore, AuthSubject, PermissionCheckScope, RoleProvider, SecretCipher } from "./types.js";
+import type { AuthConfig, AuthStore, AuthSubject, PermissionCheckScope, RoleKeyReader, RoleProvider, SecretCipher } from "./types.js";
 import { checkPassword } from "./credentials/index.js";
 import { createCodeManager } from "./codes/index.js";
 import { createPermissionEngine } from "./permissions/index.js";
@@ -17,6 +17,7 @@ type AuthOptions = {
   cipher?: SecretCipher | null;
   config?: Parameters<typeof normalizeAuthConfig>[0];
   encryptionKey?: string;
+  roleKey?: RoleKeyReader | null;
   roles?: RoleProvider | null;
   secret: string;
   store: AuthStore;
@@ -36,7 +37,7 @@ function createAuth(options: AuthOptions) {
   const sessions = createSessionManager(store, config.session);
   const twoFactor = createTwoFactorManager(store, config.twoFactor);
   const codes = createCodeManager(store, config.codes, config.password);
-  const permissions = createPermissionEngine(config.permissions, { roleProvider: options.roles });
+  const permissions = createPermissionEngine(config.permissions, { roleKeyReader: options.roleKey, roleProvider: options.roles });
   const flow = createSignInFlow({ config, secret, sessions, store, twoFactor });
   const { attempts, authenticate, signIn, startSession } = flow;
 

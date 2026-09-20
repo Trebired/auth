@@ -4,6 +4,7 @@ import type {
   PermissionCheckScope,
   PermissionRequirement,
   ResolvedRole,
+  RoleKeyReader,
   RoleProvider,
   ScopeDefinition,
 } from "#hfap0x87te96";
@@ -15,6 +16,7 @@ import { readSubjectRoles, roleKeyForScope } from "./subject.js";
 type PermissionEngine = ReturnType<typeof createPermissionEngine>;
 
 type EngineOptions = {
+  roleKeyReader?: RoleKeyReader | null;
   roleProvider?: RoleProvider | null;
 };
 
@@ -122,6 +124,7 @@ function createDecision(definitionFor: (scope: unknown) => ScopeDefinition | nul
 
 function createPermissionEngine(scopes: Record<string, ScopeDefinition>, options: EngineOptions = {}) {
   const roleProvider = typeof options.roleProvider === "function" ? options.roleProvider : null;
+  const readRoleKey = typeof options.roleKeyReader === "function" ? options.roleKeyReader : roleKeyForScope;
 
   function definitionFor(scope: unknown): ScopeDefinition | null {
     const key = scopeName(scope);
@@ -138,8 +141,9 @@ function createPermissionEngine(scopes: Record<string, ScopeDefinition>, options
 
   async function subjectRole(subject: AuthSubject | null | undefined, target: PermissionCheckScope) {
     const entityId = normalize.toString(target && target.entityId);
-    const roleKey = roleKeyForScope(subject, scopeName(target && target.scope), entityId);
-    return roleKey ? await resolveRole(target && target.scope, roleKey, entityId) : null;
+    const scope = scopeName(target && target.scope);
+    const roleKey = await readRoleKey(subject, scope, entityId);
+    return roleKey ? await resolveRole(scope, roleKey, entityId) : null;
   }
 
   const can = createDecision(definitionFor, subjectRole);

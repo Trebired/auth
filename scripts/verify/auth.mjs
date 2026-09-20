@@ -147,6 +147,7 @@ async function verifyRoleEngine(dist, store) {
   assert.equal(check.ok, false, "a role with an undeclared permission is invalid");
   assert.equal(auth.permissions.declared("platform").includes("create:platform.user"), true, "alias targets count as declared");
   await verifyPrivilegeRank(dist, store);
+  await verifyRoleKeyReader(dist);
 }
 
 async function verifyAliasRequirements(auth) {
@@ -155,6 +156,23 @@ async function verifyAliasRequirements(auth) {
   assert.equal(await auth.can(lister, "manage:platform.everything", { scope: "platform" }), true, "a nested alias expands through");
   const partial = subject("p", { roles: { platform: "creator" } });
   assert.equal(await auth.can(partial, "manage:platform.user", { scope: "platform" }), false, "holding one target is not the alias");
+}
+
+async function verifyRoleKeyReader(dist) {
+  const store = dist.createMemoryStore([subject("rk")]);
+  const memberships = new Map([["org1", { rk: "owner" }]]);
+  const auth = dist.createAuth({
+      config: {
+        permissions: { organization: { declared: ["view:organization.member"], roles: { owner: { permissions: ["all"] } } } },
+      },
+      roleKey: (person, scope, entityId) => (memberships.get(entityId) || {})[person && person.id] || "",
+      secret: SECRET,
+      store,
+  });
+  const viewer = await auth.loadSubject("rk");
+  const target = { entityId: "org1", scope: "organization" };
+  assert.equal(await auth.can(viewer, "view:organization.member", target), true, "a role read from elsewhere answers");
+  assert.equal(await auth.can(viewer, "view:organization.member", { entityId: "org2", scope: "organization" }), false, "another entity has no role");
 }
 
 async function verifyPrivilegeRank(dist, store) {

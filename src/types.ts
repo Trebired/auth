@@ -31,6 +31,12 @@ type ResolvedRole = {
   source: "config" | "provider";
 };
 
+type RoleKeyReader = (
+  subject: AuthSubject | null | undefined,
+  scope: string,
+  entityId: string,
+) => Promise<unknown>|unknown;
+
 type RoleProvider = (
   scope: string,
   roleKey: string,
@@ -174,6 +180,7 @@ export type {
   RankStrategy,
   ResolvedRole,
   RoleDefinition,
+  RoleKeyReader,
   RoleProvider,
   ScopeDefinition,
   ScopeOverride,

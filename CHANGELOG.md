@@ -4,6 +4,10 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 0.7.0
+
+- Added `roleKey`, a reader called with the subject, scope and entity id when a role assignment lives outside the subject, such as a membership row on the organization it applies to. It may be asynchronous. Without it, roles are read from the subject as before.
+
 ## 0.6.0
 
 - Added sign-in rate limiting. Failed attempts are counted per address, or per identifier when no address is given, inside the window set by the new `login` policy, and an attempt made while blocked returns `reason: "rate-limited"` with `retryAfterMs`. `auth.attempts` and `createAttemptLimiter` expose the same counter for an application's own events.
