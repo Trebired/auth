@@ -114,9 +114,12 @@ type AuthConfigInput = {
 type SessionDevice = {
   browserName: string;
   browserVersion: string;
+  details: Record<string, string>;
   deviceType: string;
   label: string;
+  model: string;
   osName: string;
+  platform: string;
   userAgent: string;
 };
 

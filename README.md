@@ -55,7 +55,7 @@ The auth state holds `passwordHash`, `sessions`, `twoFactor`, `backupCode` and `
 
 ### Sessions
 
-Signing in opens a session record with its own id, device description, address, locale and expiry, and signs a token naming the subject and that session. Authenticating a token loads the subject, refuses expired or revoked sessions, and stamps the session's last-seen time. Sessions above `session.maxPerSubject` are trimmed oldest first, and the session being opened is always kept.
+Signing in opens a session record with its own id, device description, address, locale and expiry. The device is read from the user agent and the client hints, and carries the raw hints in `details`; an application that detects its own passes `device` in the context instead, and signs a token naming the subject and that session. Authenticating a token loads the subject, refuses expired or revoked sessions, and stamps the session's last-seen time. Sessions above `session.maxPerSubject` are trimmed oldest first, and the session being opened is always kept.
 
 ### Permissions
 

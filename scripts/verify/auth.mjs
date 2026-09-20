@@ -148,6 +148,7 @@ async function verifyRoleEngine(dist, store) {
   assert.equal(auth.permissions.declared("platform").includes("create:platform.user"), true, "alias targets count as declared");
   await verifyPrivilegeRank(dist, store);
   await verifyRoleKeyReader(dist);
+  await verifyDevices(dist);
 }
 
 async function verifyAliasRequirements(auth) {
@@ -156,6 +157,26 @@ async function verifyAliasRequirements(auth) {
   assert.equal(await auth.can(lister, "manage:platform.everything", { scope: "platform" }), true, "a nested alias expands through");
   const partial = subject("p", { roles: { platform: "creator" } });
   assert.equal(await auth.can(partial, "manage:platform.user", { scope: "platform" }), false, "holding one target is not the alias");
+}
+
+async function verifyDevices(dist) {
+  const store = dist.createMemoryStore([subject("dev")]);
+  const auth = dist.createAuth({ secret: SECRET, store });
+  const headers = {
+    "sec-ch-ua": '"Brave";v="131", "Chromium";v="131", "Not_A Brand";v="24"',
+    "sec-ch-ua-mobile": "?1",
+    "sec-ch-ua-model": '"Pixel 8"',
+    "sec-ch-ua-platform": '"Android"',
+    "user-agent": "Mozilla/5.0 (Linux; Android 14) Chrome/131.0.0.0 Mobile Safari/537.36",
+  };
+  const opened = await auth.startSession(await auth.loadSubject("dev"), { headers });
+  const device = opened.session.device;
+  assert.equal(device.browserName, "Brave", "a client hint names the browser over the user agent");
+  assert.equal(device.model, "Pixel 8", "the device model is kept");
+  assert.equal(device.deviceType, "mobile", "the mobile hint sets the device type");
+  assert.equal(device.details["sec_ch_ua"].includes("Brave"), true, "the raw hints are kept for the application");
+  const given = await auth.startSession(await auth.loadSubject("dev"), { device: { label: "Kiosk", model: "K1" } });
+  assert.equal(given.session.device.label, "Kiosk", "a prepared device is taken as given");
 }
 
 async function verifyRoleKeyReader(dist) {

@@ -4,6 +4,11 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 0.8.0
+
+- Changed device detection to read client hints: the `sec-ch-ua` brand list names the browser ahead of the user agent, and the record now carries `model`, `platform` and a `details` map holding the raw hints, so an application can show what it captured.
+- Added a `device` field to the session context, which takes a prepared device record instead of detecting one from headers.
+
 ## 0.7.0
 
 - Added `roleKey`, a reader called with the subject, scope and entity id when a role assignment lives outside the subject, such as a membership row on the organization it applies to. It may be asynchronous. Without it, roles are read from the subject as before.

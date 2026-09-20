@@ -1,10 +1,11 @@
 import { generateId, normalizers as normalize } from "@trebired/utils";
 import type { AuthStore, AuthSubject, SessionPolicy, SessionRecord, StoredAuthState } from "#hfap0x87te96";
-import { describeDevice } from "./device.js";
+import { describeDevice, normalizeSessionDevice } from "./device.js";
 import { durationToMs } from "#tncys3cufz3c";
 import { readAuthState } from "#l04g1rbs8bmx";
 
 type SessionContext = {
+  device?: unknown;
   headers?: Record<string, unknown>|null;
   ip?: string;
   locale?: string;
@@ -34,7 +35,7 @@ function buildSession(context: SessionContext, policy: SessionPolicy): SessionRe
   const ttl = durationToMs(policy.ttl);
   return {
     createdAt,
-    device: describeDevice(context && context.headers),
+    device: context && context.device ? normalizeSessionDevice(context.device) : describeDevice(context && context.headers),
     expiresAt: ttl > 0 ? new Date(Date.parse(createdAt) + ttl).toISOString() : "",
     id: String(generateId("numeric")),
     ip: normalize.toString(context && context.ip),
