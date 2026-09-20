@@ -4,6 +4,10 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 1.3.0
+
+- Exported `currentRoleKey` and `readSubjectRoles`. `currentRoleKey` reads only a role explicitly marked `current`, which a caller needs when a looser reading would mistake a neighbouring key for a role.
+
 ## 1.2.0
 
 - Added `permissions.allows(scope, held, permission)` and `permissions.satisfiedBy(scope, held, requirement)`, which decide from a permission list the caller already holds, synchronously and under the same alias and wildcard rule `can()` applies. `can()` now uses the same helper, so there is one rule rather than two.

@@ -163,6 +163,8 @@ async function verifySetDecisions(dist) {
   assert.equal(dist.readRoleKey({ role: "viewer" }), "viewer", "a plain role string is read");
   assert.equal(dist.readRoleKey({ key: "owner" }), "owner", "a key field is read");
   assert.equal(dist.readRoleKey({}), "", "an empty entry names nothing");
+  assert.equal(dist.currentRoleKey({ admin: { current: true }, viewer: {} }), "admin", "the current marker names the role");
+  assert.equal(dist.currentRoleKey({ admin: {}, viewer: {} }), "", "without a marker nothing is current");
 }
 
 export { verifyDevices, verifyRoleEngine, verifySetDecisions };

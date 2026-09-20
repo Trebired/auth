@@ -75,7 +75,7 @@ A request that already holds a viewer's permissions should not resolve the role 
 
 ### Where a role assignment lives
 
-`readRoleKey(entry)` reads the role out of a membership record however the application spells it: a plain string, `{ role: "owner" }`, `{ role_key }`, `{ key }`, or a map marking the current one with `{ current: true }`.
+`currentRoleKey(map)` reads only the role a map marks as `current`. `readRoleKey(entry)` is the looser reading: it takes the role out of a membership record however the application spells it: a plain string, `{ role: "owner" }`, `{ role_key }`, `{ key }`, or a map marking the current one with `{ current: true }`.
 
 By default a subject carries its own roles. When the assignment lives somewhere else, such as a membership row on the organization, pass `roleKey`: it is called with the subject, the scope and the entity id, and returns the role key for that pair. It may be asynchronous, so it can read the application's tables.
 
