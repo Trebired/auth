@@ -202,6 +202,85 @@ async function verifyEncryptedSecrets(dist) {
   assert.equal(other.decrypt(afterCode.auth.backupCode.secret), "", "another key cannot read the secret");
 }
 
+async function verifyRateLimit(dist) {
+  const store = dist.createMemoryStore([subject("rl")]);
+  const auth = dist.createAuth({ config: { login: { maxAttempts: 2, window: "1m" } }, secret: SECRET, store });
+  await auth.setPassword(await auth.loadSubject("rl"), "Str0ng!Passw0rd");
+  const wrong = { ip: "10.0.0.7" };
+  assert.equal((await auth.signIn("rl", "nope", wrong)).reason, "invalid-credentials", "a wrong password is refused");
+  assert.equal((await auth.signIn("rl", "nope", wrong)).reason, "invalid-credentials", "the second attempt is still refused");
+  const blocked = await auth.signIn("rl", "Str0ng!Passw0rd", wrong);
+  assert.equal(blocked.reason, "rate-limited", "the attempt after the limit is refused outright");
+  assert.equal(blocked.retryAfterMs > 0, true, "a blocked attempt says how long to wait");
+  assert.equal((await auth.signIn("rl", "Str0ng!Passw0rd", { ip: "10.0.0.8" })).reason, "ok", "another address is unaffected");
+  auth.attempts.clear("10.0.0.7");
+  assert.equal((await auth.signIn("rl", "Str0ng!Passw0rd", wrong)).reason, "ok", "clearing the address lets it in");
+}
+
+async function verifyAccount(dist) {
+  const store = dist.createMemoryStore([subject("acc")]);
+  const auth = dist.createAuth({ secret: SECRET, store });
+  let person = await auth.loadSubject("acc");
+  await auth.setPassword(person, "Str0ng!Passw0rd");
+  const signed = await auth.signIn("acc", "Str0ng!Passw0rd", {});
+  person = await auth.loadSubject("acc");
+  await auth.startSession(person, {});
+  person = await auth.loadSubject("acc");
+  assert.equal((await auth.changePassword(person, "wrong", "An0ther!Passw0rd")).reason, "invalid-password", "the current password is required");
+  assert.equal((await auth.changePassword(person, "Str0ng!Passw0rd", "Str0ng!Passw0rd")).reason, "reused-password", "the same password is refused");
+  assert.equal((await auth.changePassword(person, "Str0ng!Passw0rd", "short")).reason, "weak-password", "a weak password is refused");
+  const changed = await auth.changePassword(person, "Str0ng!Passw0rd", "An0ther!Passw0rd", {
+      keepSessionId: signed.session.id,
+      revokeOtherSessions: true,
+  });
+  assert.equal(changed.ok, true, "the password changes");
+  person = await auth.loadSubject("acc");
+  assert.deepEqual((await auth.sessions.list(person)).map((entry) => entry.id), [signed.session.id], "the other sessions are revoked");
+  assert.equal((await auth.signIn("acc", "An0ther!Passw0rd", {})).reason, "ok", "the new password signs in");
+  const code = await auth.codes.issueBackupCode(await auth.loadSubject("acc"));
+  person = await auth.loadSubject("acc");
+  assert.equal(await auth.revealBackupCode(person, "wrong"), null, "revealing needs the password");
+  const revealed = await auth.revealBackupCode(await auth.loadSubject("acc"), "An0ther!Passw0rd");
+  assert.equal(revealed.code, code, "the password reveals the backup code");
+  assert.equal(revealed.revealCount, 1, "a reveal is counted");
+}
+
+async function verifyGuards(dist, express) {
+  const store = dist.createMemoryStore([subject("g")]);
+  const auth = dist.createAuth({
+      config: {
+        permissions: {
+          organization: {
+            declared: ["view:organization.member"],
+            roles: { member: { permissions: ["view:organization.member"] }, owner: { permissions: ["all"] } },
+          },
+        },
+      },
+      secret: SECRET,
+      store,
+  });
+  const viewer = subject("g", { roles: { organization: { org1: "member" } } });
+  const seen = [];
+  const res = { status: (code) => { seen.push(code); return { end: () => undefined, json: () => undefined }; } };
+  const resolve = express.scopeFromParam("organization", "organizationId");
+  const guard = express.requirePermission(auth, ["view:organization.member"], resolve);
+  await guard({ params: { organizationId: "org1" }, viewer }, res, () => seen.push(200));
+  await guard({ params: { organizationId: "org2" }, viewer }, res, () => seen.push(200));
+  assert.deepEqual(seen, [200, 403], "an entity the viewer has no role in is refused");
+  const denials = [];
+  const unknownGuard = express.requirePermission(auth, "invent:organization.thing", resolve, {
+      onDenied: (req, response, denial) => denials.push(denial.reason),
+  });
+  await unknownGuard({ params: { organizationId: "org1" }, viewer }, res, () => seen.push(200));
+  assert.deepEqual(denials, ["unknown-permission"], "an undeclared permission is a server error, not a refusal");
+  const roleGuard = express.requireRole(auth, ["owner"], resolve);
+  await roleGuard({ params: { organizationId: "org1" }, viewer }, res, () => seen.push(200));
+  assert.deepEqual(seen, [200, 403, 403], "a role guard refuses a different role");
+  const anyGuard = express.requirePermission(auth, { any: ["view:organization.member", "invent:organization.thing"] }, resolve);
+  await anyGuard({ params: { organizationId: "org1" }, viewer }, res, () => seen.push(200));
+  assert.deepEqual(seen.at(-1), 500, "an undeclared permission inside any is still reported");
+}
+
 async function verifyExpress(dist, express, auth, store) {
   const person = store.subjects.get("ada");
   await auth.setPassword(person, "Str0ng!Passw0rd");
@@ -230,6 +309,9 @@ async function main() {
   const auth = dist.createAuth({ config, secret: SECRET, store });
 
   await verifyEncryptedSecrets(dist);
+  await verifyRateLimit(dist);
+  await verifyAccount(dist);
+  await verifyGuards(dist, express);
   await verifyPasswords(auth);
   const signed = await verifySignIn(auth, store);
   await verifySessions(auth, store, signed);

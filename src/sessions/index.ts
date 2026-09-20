@@ -64,9 +64,11 @@ function createSessionManager(store: AuthStore, policy: SessionPolicy) {
   }
 
   return {
-    async clear(subject: AuthSubject) {
+    async clear(subject: AuthSubject, keepSessionId: unknown = "") {
       const state = readAuthState(subject);
-      return await write(subject, state, []);
+      const keepId = normalize.toString(keepSessionId);
+      const kept = keepId ? state.sessions.filter((entry) => entry.id === keepId) : [];
+      return await write(subject, state, kept, keepId);
     },
     async list(subject: AuthSubject) {
       return sortSessions(readAuthState(subject).sessions);

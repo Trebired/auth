@@ -37,6 +37,17 @@ type RoleProvider = (
   entityId: string,
 ) => Promise<RoleDefinition|null>|RoleDefinition | null;
 
+type AttemptPolicy = {
+  maxAttempts: number;
+  window: string;
+};
+
+type AttemptState = {
+  blocked: boolean;
+  remaining: number;
+  retryAfterMs: number;
+};
+
 type SecretCipher = {
   decrypt: (value: unknown) => string;
   encrypt: (value: unknown) => string;
@@ -76,6 +87,7 @@ type CodePolicy = {
 
 type AuthConfig = {
   codes: { activation: CodePolicy; backup: CodePolicy };
+  login: AttemptPolicy;
   forVersion?: string;
   password: PasswordPolicy;
   permissions: Record<string, ScopeDefinition>;
@@ -85,6 +97,7 @@ type AuthConfig = {
 
 type AuthConfigInput = {
   codes?: { activation?: Partial<CodePolicy>; backup?: Partial<CodePolicy> };
+  login?: Partial<AttemptPolicy>;
   forVersion?: string;
   password?: Partial<PasswordPolicy>;
   permissions?: Record<string, ScopeDefinition>;
@@ -148,6 +161,8 @@ type PermissionCheckScope = {
 };
 
 export type {
+  AttemptPolicy,
+  AttemptState,
   AuthConfig,
   AuthConfigInput,
   AuthStore,

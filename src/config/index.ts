@@ -10,6 +10,7 @@ const DEFAULT_CONFIG: AuthConfig = {
     activation: { alphabet: "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", length: 6, ttl: "7d" },
     backup: { alphabet: "ABCDEFGHJKLMNPQRSTUVWXYZ23456789", length: 10, ttl: "" },
   },
+  login: { maxAttempts: 10, window: "10m" },
   password: {
     minLength: 9,
     rejectWhitespace: true,
@@ -63,6 +64,7 @@ function normalizeAuthConfig(input: AuthConfigInput | null | undefined): AuthCon
       backup: mergeCodePolicy(DEFAULT_CONFIG.codes.backup, source.codes?.backup),
     },
     forVersion: normalize.toString(source.forVersion),
+    login: { ...DEFAULT_CONFIG.login, ...(source.login || {}) },
     password: { ...DEFAULT_CONFIG.password, ...(source.password || {}) },
     permissions: mergeScopes(source.permissions),
     session: { ...DEFAULT_CONFIG.session, ...(source.session || {}) },

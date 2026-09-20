@@ -1,10 +1,11 @@
 import { normalizers as normalize } from "@trebired/utils";
 import type { AuthConfig, AuthStore, AuthSubject, PermissionCheckScope, RoleProvider, SecretCipher } from "./types.js";
-import { checkPassword, hashPassword, verifyPassword } from "./credentials/index.js";
+import { checkPassword } from "./credentials/index.js";
 import { createCodeManager } from "./codes/index.js";
 import { createPermissionEngine } from "./permissions/index.js";
 import { createSessionManager, isSessionExpired } from "./sessions/index.js";
 import { createTwoFactorManager } from "./twofactor/index.js";
+import { createAccountFlow } from "./account.js";
 import { createSignInFlow, type SignInResult } from "./flow.js";
 import { normalizeAuthConfig } from "./config/index.js";
 import { createProtectedStore, revealState } from "./store/protected.js";
@@ -36,22 +37,18 @@ function createAuth(options: AuthOptions) {
   const twoFactor = createTwoFactorManager(store, config.twoFactor);
   const codes = createCodeManager(store, config.codes, config.password);
   const permissions = createPermissionEngine(config.permissions, { roleProvider: options.roles });
-  const { authenticate, signIn, startSession } = createSignInFlow({ config, secret, sessions, store, twoFactor });
+  const flow = createSignInFlow({ config, secret, sessions, store, twoFactor });
+  const { attempts, authenticate, signIn, startSession } = flow;
 
-  async function setPassword(subject: AuthSubject, password: string) {
-    const check = checkPassword(password, config.password);
-    if (!check.ok) return check;
-    const state = readAuthState(subject);
-    const passwordHash = await hashPassword(password, config.password);
-    await store.saveAuthState(subject.id, { ...state, passwordHash });
-    return check;
-  }
+  const account = createAccountFlow({ codes, config, store });
 
   async function can(subject: AuthSubject | null, permission: unknown, scope: PermissionCheckScope) {
     return await permissions.can(subject, permission, scope);
   }
 
   return {
+    ...account,
+    attempts,
     authenticate,
     can,
     loadSubject: (id: string) => store.loadSubject(id),
@@ -62,7 +59,6 @@ function createAuth(options: AuthOptions) {
     cookieOptions: (secure: boolean) => sessionCookieOptions(config.session, secure),
     permissions,
     sessions,
-    setPassword,
     signIn,
     signOut: (subject: AuthSubject, sessionId: unknown) => sessions.revoke(subject, sessionId),
     startSession,
@@ -73,6 +69,7 @@ function createAuth(options: AuthOptions) {
 type Auth = ReturnType<typeof createAuth>;
 
 export { createAuth };
+export { createAttemptLimiter } from "./attempts/index.js";
 export { createMemoryStore } from "./store/index.js";
 export { createProtectedStore, protectState, revealState } from "./store/protected.js";
 export { createSecretCipher, isEncryptedSecret } from "./crypto/index.js";

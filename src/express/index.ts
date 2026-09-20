@@ -1,6 +1,7 @@
 import { normalizers as normalize } from "@trebired/utils";
 import type { Auth } from "#6bqo5aavo6oc";
-import type { PermissionCheckScope } from "#hfap0x87te96";
+import { normalizeRequirement, requirePermission, requireRole, scopeFromParam } from "./guards.js";
+import type { Denial, GuardOptions, ScopeResolver } from "./guards.js";
 
 type RequestLike = {
   cookies?: Record<string, unknown>;
@@ -14,8 +15,6 @@ type ResponseLike = {
   cookie?: (name: string, value: string, options?: unknown) => unknown;
   status: (code: number) => { end: () => unknown; json: (body: unknown) => unknown };
 };
-
-type ScopeResolver = (req: RequestLike) => PermissionCheckScope;
 
 function readCookie(req: RequestLike, name: string) {
   const fromParser = req && req.cookies && typeof req.cookies === "object" ? req.cookies[name] : "";
@@ -45,18 +44,6 @@ function requireAuth(viewerKey = "viewer") {
   };
 }
 
-function requirePermission(auth: Auth, permission: string, resolveScope: ScopeResolver, viewerKey = "viewer") {
-  return async function requirePermitted(req: RequestLike, res: ResponseLike, next: () => void) {
-    const viewer = (req as Record<string, unknown>)[viewerKey] as never;
-    if (!viewer) {
-      res.status(401).json({ error: true, status_code: "unauthorized" });
-      return;
-    }
-    if (await auth.can(viewer, permission, resolveScope(req))) return next();
-    res.status(403).json({ error: true, status_code: "forbidden" });
-  };
-}
-
 function setSessionCookie(auth: Auth, res: ResponseLike, token: string, secure: boolean) {
   if (typeof res.cookie !== "function") return;
   res.cookie(auth.config.session.cookieName, token, auth.cookieOptions(secure));
@@ -67,5 +54,15 @@ function clearSessionCookie(auth: Auth, res: ResponseLike, secure: boolean) {
   res.clearCookie(auth.config.session.cookieName, auth.cookieOptions(secure));
 }
 
-export { attachViewer, clearSessionCookie, readCookie, requireAuth, requirePermission, setSessionCookie };
-export type { RequestLike, ResponseLike, ScopeResolver };
+export {
+  attachViewer,
+  clearSessionCookie,
+  normalizeRequirement,
+  readCookie,
+  requireAuth,
+  requirePermission,
+  requireRole,
+  scopeFromParam,
+  setSessionCookie,
+};
+export type { Denial, GuardOptions, RequestLike, ResponseLike, ScopeResolver };

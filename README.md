@@ -73,6 +73,16 @@ Roles are ordered one of two ways, chosen per scope with `rank`. Under `"declare
 
 Roles that are created at runtime never fit in a config file. `createAuth({ roles })` takes a provider, called with the scope, role key and entity id when the config does not declare that role. A resolved role reports `source: "config"` or `source: "provider"`. Provider roles run through the same alias expansion, so storage holds the same keys an editor shows, and they are ranked like configured ones.
 
+### Sign-in attempts
+
+Failed sign-ins are counted per address, or per identifier when the caller passes no address, inside a rolling window set by `login: { maxAttempts, window }`. An attempt made while blocked returns `reason: "rate-limited"` with `retryAfterMs` and never reaches the store, and a successful sign-in clears the count. `auth.attempts` exposes `read`, `fail`, `clear` and `reset`, so an application can count its own events against the same limiter or clear a block from an admin screen.
+
+### Account changes
+
+`changePassword(subject, current, next, { revokeOtherSessions, keepSessionId })` verifies the current password, refuses the same password again, checks the new one against the policy, and writes the hash and the session list in one save. It answers `invalid-password`, `reused-password`, `weak-password` or `ok`, with the failed policy rules when it is the password that is weak.
+
+`revealBackupCode(subject, password)` verifies the password before it hands the code back, and counts the reveal. `codes.revealBackupCode(subject)` is the ungated form for a caller that has already checked.
+
 ### Secrets at rest
 
 The two-factor secret, the pending secret and the backup code are credentials, so they can be encrypted before they reach the store. `createAuth({ encryptionKey })` wraps the store: writes encrypt those three fields, reads decrypt them, and the rest of the record is passed through untouched. `createAuth({ cipher })` takes a cipher of your own instead, which is how an application keeps reading secrets written by an older scheme.
@@ -91,6 +101,7 @@ import { defineConfig } from "@trebired/auth/config";
 export default defineConfig({
   forVersion: "0.1.0",
   password: { minLength: 9, requireSpecial: true },
+  login: { maxAttempts: 10, window: "10m" },
   session: { cookieName: "token", maxPerSubject: 20, ttl: "7d" },
   twoFactor: { issuer: "Example", step: 30, window: 1 },
   codes: { activation: { length: 6, ttl: "7d" }, backup: { length: 10 } },
@@ -126,9 +137,9 @@ TOTP follows RFC 6238 with SHA-1, the configured digit count and step, and a dri
 
 ### Root
 
-`createAuth`, `createMemoryStore`, `createProtectedStore`, `createSecretCipher`, `isEncryptedSecret`, `protectState`, `revealState`, `checkPassword`, `hashPassword`, `verifyPassword`, `createPermissionEngine`, `readAuthState`, `isSessionExpired`, `signSessionToken`, `verifySessionToken`, `sessionCookieOptions`, `durationToMs`, `generateSecret`, `totp`, `verifyTotp`, `otpauthUrl`, and the permission key helpers.
+`createAuth`, `createAttemptLimiter`, `createMemoryStore`, `createProtectedStore`, `createSecretCipher`, `isEncryptedSecret`, `protectState`, `revealState`, `checkPassword`, `hashPassword`, `verifyPassword`, `createPermissionEngine`, `readAuthState`, `isSessionExpired`, `signSessionToken`, `verifySessionToken`, `sessionCookieOptions`, `durationToMs`, `generateSecret`, `totp`, `verifyTotp`, `otpauthUrl`, and the permission key helpers.
 
-An `Auth` instance exposes `signIn`, `startSession`, `authenticate`, `signOut`, `setPassword`, `checkPassword`, `can`, `loadSubject`, `readState`, `cookieOptions`, `config`, and the `sessions`, `twoFactor`, `codes` and `permissions` managers.
+An `Auth` instance exposes `signIn`, `startSession`, `authenticate`, `signOut`, `setPassword`, `changePassword`, `revealBackupCode`, `checkPassword`, `can`, `loadSubject`, `readState`, `attempts`, `cookieOptions`, `config`, and the `sessions`, `twoFactor`, `codes` and `permissions` managers.
 
 ### Config
 
@@ -136,14 +147,16 @@ An `Auth` instance exposes `signIn`, `startSession`, `authenticate`, `signOut`, 
 
 ### Express
 
-`attachViewer`, `requireAuth`, `requirePermission`, `setSessionCookie`, `clearSessionCookie`, `readCookie`.
+`attachViewer`, `requireAuth`, `requirePermission`, `requireRole`, `scopeFromParam`, `normalizeRequirement`, `setSessionCookie`, `clearSessionCookie`, `readCookie`.
+
+`requirePermission` takes a permission, a list, or `{ all }` / `{ any }`, and a resolver that reads the scope and entity from the request; `scopeFromParam("organization", "organizationId")` is the usual one. A permission the scope never declared is a fault in the route, not a refusal by the viewer, so it answers 500 and names the permissions. `requireRole` admits only the listed roles for the resolved scope. Both take `onDenied`, which receives the request, the response and a denial naming the reason, the requirement and the scope, so the application shapes its own response and message.
 
 ## What It Does Not Do
 
 - No storage. It never opens a database, defines a user table, or writes files.
 - No routes, pages, forms, or interface text. It answers; the application responds.
 - No email, SMS, or push delivery. It issues codes and verifies them.
-- No rate limiting, lockout, or audit log. Those need application storage and policy.
+- No audit log, and no rate limiting beyond sign-in attempts held in this process. A fleet of processes needs shared storage the application owns.
 - No OAuth, SAML, LDAP, or passkeys.
 - No role names or permission keys of its own. Both are configuration.
 - No secret management. The application supplies the signing and encryption keys and rotates them.

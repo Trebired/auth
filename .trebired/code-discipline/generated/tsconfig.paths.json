@@ -19,6 +19,12 @@
       "#8975r0zvphjw": [
         "../../../src/credentials/index.ts"
       ],
+      "#9kzf4btso7n5": [
+        "../../../src/express/guards.ts"
+      ],
+      "#9or2tt6w6cys": [
+        "../../../src/attempts/index.ts"
+      ],
       "#cnkg6dldxx2i": [
         "../../../scripts/prepare-dist.mjs"
       ],
@@ -72,6 +78,9 @@
       ],
       "#tscm28xzccwy": [
         "../../../src/sessions/device.ts"
+      ],
+      "#tvw4sv4n6nkh": [
+        "../../../src/account.ts"
       ],
       "#v1g6uwnw245t": [
         "../../../src/store/protected.ts"

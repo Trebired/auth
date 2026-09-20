@@ -4,6 +4,14 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 0.6.0
+
+- Added sign-in rate limiting. Failed attempts are counted per address, or per identifier when no address is given, inside the window set by the new `login` policy, and an attempt made while blocked returns `reason: "rate-limited"` with `retryAfterMs`. `auth.attempts` and `createAttemptLimiter` expose the same counter for an application's own events.
+- Added `changePassword`, which verifies the current password, refuses a reused or weak one, and writes the new hash and the surviving sessions in one save, optionally keeping only the session the change was made from.
+- Added `revealBackupCode(subject, password)`, which verifies the password before returning the code and counts the reveal.
+- Added `requireRole` and `scopeFromParam`, and taught `requirePermission` to take a list or an `{ all }` / `{ any }` requirement, to resolve the scope asynchronously, to answer 500 for a permission the scope never declared, and to hand a denial to an `onDenied` hook so the application shapes the response.
+- Added a keep-one argument to `sessions.clear`.
+
 ## 0.5.0
 
 - Added encryption at rest for the two-factor secret, the pending secret and the backup code. `createAuth({ encryptionKey })` wraps the store so those three fields are encrypted on write and decrypted on read, and `createAuth({ cipher })` takes a cipher of your own for records written under an older scheme.
