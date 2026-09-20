@@ -7,7 +7,7 @@ import type {
   RoleProvider,
   ScopeDefinition,
 } from "#hfap0x87te96";
-import { declaredPermissions, expandPermissions, resolveRoleAlias } from "./aliases.js";
+import { declaredPermissions, expandPermissions, requiredPermissions, resolveRoleAlias } from "./aliases.js";
 import { isPermissionKey, normalizePermission, normalizeRoleKey, WILDCARD } from "./keys.js";
 import { outranksResolved, rankResolvedRole, roleOrder } from "./hierarchy.js";
 import { readSubjectRoles, roleKeyForScope } from "./subject.js";
@@ -99,7 +99,9 @@ function createDecision(definitionFor: (scope: unknown) => ScopeDefinition | nul
   async function grants(subject: AuthSubject | null | undefined, permission: string, target: PermissionCheckScope) {
     const role = await subjectRole(subject, target);
     if (!role) return false;
-    return role.permissions.includes(WILDCARD) || role.permissions.includes(permission);
+    if (role.permissions.includes(WILDCARD) || role.permissions.includes(permission)) return true;
+    const required = requiredPermissions(permission, definitionFor(target && target.scope));
+    return required.length > 1 && required.every((entry) => role.permissions.includes(entry));
   }
 
   return async function can(

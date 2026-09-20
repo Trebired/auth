@@ -4,6 +4,12 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 0.4.0
+
+- Changed alias expansion to run on the requirement as well as the role. A check for `manage:platform.user` now passes for a role that holds every permission that alias names, which is how a product that stores expanded permission lists asks its questions.
+- Changed alias expansion to follow aliases that name other aliases, stopping at the key that started a cycle.
+- Changed `declared()` to include alias keys next to an explicit `declared` list, so checking an alias against the declared set no longer reports it as unknown.
+
 ## 0.3.0
 
 - Added a per-scope ranking strategy. `rank: "privilege"` ranks a role by how many permissions it holds after alias expansion, with `all` above every list, so roles created at runtime rank against configured ones without a declaration order. `rank: "declared"`, the default, keeps declaration order.

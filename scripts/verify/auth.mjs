@@ -106,10 +106,15 @@ async function verifyRoleEngine(dist, store) {
       config: {
         permissions: {
           platform: {
-            aliases: { "manage:platform.user": ["create:platform.user", "delete:platform.user"] },
+            aliases: {
+              "manage:platform.everything": ["manage:platform.user"],
+              "manage:platform.user": ["create:platform.user", "delete:platform.user"],
+            },
             roleAliases: { platform_admin: "admin" },
             roles: {
               viewer: { permissions: ["view:platform.user"] },
+              creator: { permissions: ["create:platform.user"] },
+              lister: { permissions: ["create:platform.user", "delete:platform.user"] },
               manager: { permissions: ["manage:platform.user"] },
               admin: { permissions: ["all"] },
             },
@@ -125,6 +130,7 @@ async function verifyRoleEngine(dist, store) {
   assert.equal(await auth.can(manager, "delete:platform.user", { scope: "platform" }), true, "an alias expands to its permissions");
   assert.equal(await auth.can(manager, "manage:platform.user", { scope: "platform" }), true, "the alias itself still answers");
   assert.equal(await auth.can(manager, "view:platform.user", { scope: "platform" }), false, "an alias grants only its own list");
+  await verifyAliasRequirements(auth);
   const aliased = subject("a", { roles: { platform: "platform_admin" } });
   assert.equal(await auth.can(aliased, "delete:platform.user", { scope: "platform" }), true, "a role alias resolves to its role");
   const stored = subject("s", { roles: { organization: { org9: "stored_owner" } } });
@@ -135,12 +141,20 @@ async function verifyRoleEngine(dist, store) {
   assert.equal(await auth.permissions.outranks("platform", "admin", "viewer"), true, "a later role outranks an earlier one");
   assert.equal(await auth.permissions.outranks("platform", "viewer", "admin"), false, "an earlier role does not outrank a later one");
   assert.equal(await auth.permissions.outranks("platform", "unknown_role", "viewer"), false, "an unknown role outranks nothing");
-  assert.equal(await auth.permissions.rank("platform", "manager"), 1, "declared order is the rank");
+  assert.equal(await auth.permissions.rank("platform", "manager"), 3, "declared order is the rank");
   const check = auth.permissions.validatePermissions("platform", ["view:platform.user", "invent:platform.thing"]);
   assert.deepEqual(check.invalid, ["invent:platform.thing"], "undeclared permissions are reported");
   assert.equal(check.ok, false, "a role with an undeclared permission is invalid");
   assert.equal(auth.permissions.declared("platform").includes("create:platform.user"), true, "alias targets count as declared");
   await verifyPrivilegeRank(dist, store);
+}
+
+async function verifyAliasRequirements(auth) {
+  const lister = subject("l", { roles: { platform: "lister" } });
+  assert.equal(await auth.can(lister, "manage:platform.user", { scope: "platform" }), true, "holding every target answers the alias");
+  assert.equal(await auth.can(lister, "manage:platform.everything", { scope: "platform" }), true, "a nested alias expands through");
+  const partial = subject("p", { roles: { platform: "creator" } });
+  assert.equal(await auth.can(partial, "manage:platform.user", { scope: "platform" }), false, "holding one target is not the alias");
 }
 
 async function verifyPrivilegeRank(dist, store) {

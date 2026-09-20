@@ -63,11 +63,11 @@ A permission key is `action:resource`, such as `view:platform.user`. A role list
 
 ### Aliases, order and validation
 
-A scope may declare `aliases`, where one key stands for a list: a role holding `manage:platform.user` also holds every permission that alias names, and the alias itself still answers. `roleAliases` maps an old or external role key onto a declared one.
+A scope may declare `aliases`, where one key stands for a list. Expansion runs both ways: a role holding `manage:platform.user` holds every permission that alias names, and a check for `manage:platform.user` passes for a role that holds all of them without naming the alias. Aliases may name other aliases, and a cycle stops at the key that started it. `roleAliases` maps an old or external role key onto a declared one.
 
 Roles are ordered one of two ways, chosen per scope with `rank`. Under `"declared"`, the default, they are declared weakest first and a role's rank is its position. Under `"privilege"`, a role's rank is how many permissions it holds after alias expansion, with `all` above every list; that is what a product needs when roles are created at runtime and have no place in a declaration order. `rank(scope, roleKey, entityId?)` returns the rank and `outranks(scope, actor, target, entityId?)` compares two roles. Both are asynchronous, because either role can come from storage, and an unknown role ranks weakest, so it outranks nothing.
 
-`declared(scope)` lists every permission the scope knows, taken from `declared` when given and from the roles and aliases otherwise. `validatePermissions(scope, permissions)` splits a list into `valid` and `invalid`, which is what a role editor needs before saving.
+`declared(scope)` lists every permission the scope knows: the `declared` list when given, the roles' permissions otherwise, and the alias keys in both cases. `validatePermissions(scope, permissions)` splits a list into `valid` and `invalid`, which is what a role editor needs before saving.
 
 ### Roles from storage
 
