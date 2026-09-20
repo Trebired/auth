@@ -8,8 +8,8 @@ import type {
   RoleProvider,
   ScopeDefinition,
 } from "#hfap0x87te96";
-import { declaredPermissions, expandPermissions, requiredPermissions, resolveRoleAlias } from "./aliases.js";
-import { isPermissionKey, normalizePermission, normalizeRoleKey, WILDCARD } from "./keys.js";
+import { allowsPermission, declaredPermissions, expandPermissions, requiredPermissions, resolveRoleAlias } from "./aliases.js";
+import { isPermissionKey, normalizePermission, normalizeRoleKey } from "./keys.js";
 import { outranksResolved, rankResolvedRole, roleOrder } from "./hierarchy.js";
 import { readSubjectRoles, roleKeyForScope } from "./subject.js";
 
@@ -75,6 +75,14 @@ function createRankQueries(definitionFor: (scope: unknown) => ScopeDefinition | 
   return { outranks, rank };
 }
 
+function setSatisfies(definition: ScopeDefinition | null, held: unknown, requirement: PermissionRequirement) {
+  const all = Array.isArray(requirement && requirement.all) ? requirement.all : [];
+  const any = Array.isArray(requirement && requirement.any) ? requirement.any : [];
+  if (!all.length && !any.length) return false;
+  if (!all.every((permission) => allowsPermission(held, permission, definition))) return false;
+  return any.length ? any.some((permission) => allowsPermission(held, permission, definition)) : true;
+}
+
 function createScopeQueries(definitionFor: (scope: unknown) => ScopeDefinition | null) {
   function validatePermissions(scope: unknown, permissions: unknown) {
     const declared = new Set(declaredPermissions(definitionFor(scope)));
@@ -84,11 +92,15 @@ function createScopeQueries(definitionFor: (scope: unknown) => ScopeDefinition |
   }
 
   return {
+    allows: (scope: unknown, held: unknown, permission: unknown) =>
+    allowsPermission(held, permission, definitionFor(scope)),
     declared: (scope: unknown) => declaredPermissions(definitionFor(scope)),
     expand: (scope: unknown, permission: unknown) => requiredPermissions(permission, definitionFor(scope)),
     isDeclared: (scope: unknown, permission: unknown) =>
     declaredPermissions(definitionFor(scope)).includes(normalizePermission(permission)),
     roleOrder: (scope: unknown) => roleOrder(definitionFor(scope)),
+    satisfiedBy: (scope: unknown, held: unknown, requirement: PermissionRequirement) =>
+    setSatisfies(definitionFor(scope), held, requirement),
     validatePermissions,
   };
 }
@@ -102,9 +114,7 @@ function createDecision(definitionFor: (scope: unknown) => ScopeDefinition | nul
   async function grants(subject: AuthSubject | null | undefined, permission: string, target: PermissionCheckScope) {
     const role = await subjectRole(subject, target);
     if (!role) return false;
-    if (role.permissions.includes(WILDCARD) || role.permissions.includes(permission)) return true;
-    const required = requiredPermissions(permission, definitionFor(target && target.scope));
-    return required.length > 1 && required.every((entry) => role.permissions.includes(entry));
+    return allowsPermission(role.permissions, permission, definitionFor(target && target.scope));
   }
 
   return async function can(

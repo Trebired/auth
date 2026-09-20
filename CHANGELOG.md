@@ -4,6 +4,11 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 1.2.0
+
+- Added `permissions.allows(scope, held, permission)` and `permissions.satisfiedBy(scope, held, requirement)`, which decide from a permission list the caller already holds, synchronously and under the same alias and wildcard rule `can()` applies. `can()` now uses the same helper, so there is one rule rather than two.
+- Added `readRoleKey(entry)`, which reads a role key out of a membership record in any of its usual shapes.
+
 ## 1.1.0
 
 - Added `needsActivation`, `readActivationState` and `matchesActivationCode` as free functions on the root export. They answer from a subject alone, so code that runs where an `Auth` instance cannot be awaited, such as a record normalizer, still uses the package's rule instead of its own.

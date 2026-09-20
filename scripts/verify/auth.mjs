@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { resolveLogger } from "@package/logger-adapter";
-import { verifyRoleEngine } from "./permissions.mjs";
+import { verifyRoleEngine, verifySetDecisions } from "./permissions.mjs";
 
 const log = resolveLogger({ source: "@trebired/auth" });
 const rootDir = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..", "..");
@@ -289,6 +289,7 @@ async function main() {
   await verifyCodes(auth, store);
   await verifyPermissions(auth);
   await verifyRoleEngine(dist, store);
+  await verifySetDecisions(dist);
   await verifyExpress(dist, express, auth, store);
   log.info("verify.auth", "Auth verification succeeded.");
 }

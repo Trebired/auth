@@ -11,7 +11,7 @@ const organization = readOrganizationIdentity({ packageJson });
 
 const PACKAGE_ORGANIZATION_NAME = organization.name;
 const PACKAGE_NAME = toTrimmedString(packageJson?.name) || `@${PACKAGE_ORGANIZATION_NAME}/auth`;
-const PACKAGE_VERSION = toTrimmedString(packageJson?.version, "1.1.0");
+const PACKAGE_VERSION = toTrimmedString(packageJson?.version, "1.2.0");
 const PACKAGE_SLUG = packageSlug(PACKAGE_NAME) || "auth";
 const buildPackageLogGroup = (...parts: unknown[]) => joinLogGroup(PACKAGE_ORGANIZATION_NAME, PACKAGE_SLUG, ...parts);
 

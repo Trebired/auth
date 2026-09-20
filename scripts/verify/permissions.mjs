@@ -136,4 +136,33 @@ async function verifyPrivilegeRank(dist, store) {
   assert.equal(await auth.permissions.rank("platform", "unknown_role"), -1, "an unknown role ranks weakest");
 }
 
-export { verifyDevices, verifyRoleEngine };
+async function verifySetDecisions(dist) {
+  const store = dist.createMemoryStore([subject("set")]);
+  const auth = dist.createAuth({
+      config: {
+        permissions: {
+          platform: {
+            aliases: { "manage:platform.user": ["create:platform.user", "delete:platform.user"] },
+            roles: { admin: { permissions: ["all"] } },
+          },
+        },
+      },
+      secret: SECRET,
+      store,
+  });
+  const held = ["create:platform.user", "delete:platform.user"];
+  assert.equal(auth.permissions.allows("platform", held, "manage:platform.user"), true, "a held set satisfies an alias");
+  assert.equal(auth.permissions.allows("platform", ["create:platform.user"], "manage:platform.user"), false, "a partial set does not");
+  assert.equal(auth.permissions.allows("platform", ["all"], "delete:platform.user"), true, "the wildcard satisfies anything");
+  assert.equal(auth.permissions.satisfiedBy("platform", held, { all: ["manage:platform.user"] }), true, "all requirements read from a set");
+  const anyRequirement = { any: ["view:platform.user", "delete:platform.user"] };
+  assert.equal(auth.permissions.satisfiedBy("platform", held, anyRequirement), true, "any requirements read from a set");
+  assert.equal(auth.permissions.satisfiedBy("platform", held, { any: ["view:platform.user"] }), false, "an unmet any requirement fails");
+  assert.equal(dist.readRoleKey({ role: { admin: { current: true } } }), "admin", "a current-marked entry names its role");
+  assert.equal(dist.readRoleKey({ role_key: "Senior_Admin" }), "senior_admin", "a role_key entry is normalized");
+  assert.equal(dist.readRoleKey({ role: "viewer" }), "viewer", "a plain role string is read");
+  assert.equal(dist.readRoleKey({ key: "owner" }), "owner", "a key field is read");
+  assert.equal(dist.readRoleKey({}), "", "an empty entry names nothing");
+}
+
+export { verifyDevices, verifyRoleEngine, verifySetDecisions };

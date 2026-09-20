@@ -1,5 +1,5 @@
 import type { ScopeDefinition } from "#hfap0x87te96";
-import { normalizePermission, normalizeRoleKey } from "./keys.js";
+import { normalizePermission, normalizeRoleKey, WILDCARD } from "./keys.js";
 
 function aliasMap(definition: ScopeDefinition | null): Record<string, string[]> {
   return definition && definition.aliases && typeof definition.aliases === "object" ? definition.aliases : {};
@@ -40,6 +40,15 @@ function requiredPermissions(permission: unknown, definition: ScopeDefinition | 
   return targets.size ? [...targets] : [key];
 }
 
+function allowsPermission(held: unknown, permission: unknown, definition: ScopeDefinition | null) {
+  const list = Array.isArray(held) ? held.map((entry) => normalizePermission(entry)).filter(Boolean) : [];
+  const wanted = normalizePermission(permission);
+  if (!wanted || !list.length) return false;
+  if (list.includes(WILDCARD) || list.includes(wanted)) return true;
+  const required = requiredPermissions(wanted, definition);
+  return required.length > 1 && required.every((entry) => list.includes(entry));
+}
+
 function resolveRoleAlias(roleKey: unknown, definition: ScopeDefinition | null): string {
   const key = normalizeRoleKey(roleKey);
   if (!key || !definition) return key;
@@ -67,4 +76,4 @@ function declaredPermissions(definition: ScopeDefinition | null): string[] {
   return [...declared];
 }
 
-export { declaredPermissions, expandPermissions, requiredPermissions, resolveRoleAlias };
+export { allowsPermission, declaredPermissions, expandPermissions, requiredPermissions, resolveRoleAlias };

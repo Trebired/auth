@@ -16,6 +16,23 @@ function currentRoleKey(entry: unknown) {
   return "";
 }
 
+function readRoleKey(entry: unknown): string {
+  if (typeof entry === "string") return normalizeRoleKey(entry);
+  if (!entry || typeof entry !== "object") return "";
+  const source = entry as Record<string, unknown>;
+  const marked = currentRoleKey(source.role);
+  if (marked) return marked;
+  const named = normalizeRoleKey(
+    source.role_key || source.roleKey || source.current_role_key || source.currentRoleKey || source.key,
+  );
+  if (named) return named;
+  const nested = Object.prototype.hasOwnProperty.call(source, "role") ? source.role : null;
+  if (typeof nested === "string") return normalizeRoleKey(nested);
+  if (nested && typeof nested === "object") return readRoleKey(nested);
+  const keys = Object.keys(source).map(normalizeRoleKey).filter(Boolean);
+  return keys.length === 1 ? keys[0] : "";
+}
+
 function roleKeyForScope(subject: AuthSubject | null | undefined, scope: string, entityId: string) {
   const assigned = readSubjectRoles(subject)[scope];
   if (typeof assigned === "string") return normalizeRoleKey(assigned);
@@ -33,4 +50,4 @@ function roleKeyForScope(subject: AuthSubject | null | undefined, scope: string,
   return values.length === 1 && typeof values[0] === "string" ? normalizeRoleKey(values[0]) : "";
 }
 
-export { currentRoleKey, readSubjectRoles, roleKeyForScope };
+export { currentRoleKey, readRoleKey, readSubjectRoles, roleKeyForScope };

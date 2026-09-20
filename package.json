@@ -8,7 +8,7 @@
     }
   },
   "name": "@trebired/auth",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "description": "Authentication and permissions for Trebired apps: password credentials, session tokens and cookies, login sessions, TOTP two-factor, backup and activation codes, and a role-based permission engine, wired through .trebired/auth/config.ts.",
   "type": "module",
   "private": false,

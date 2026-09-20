@@ -1,7 +1,7 @@
 import { defineConfig } from "#tat8s4sbqe1s";
 
 export default defineConfig({
-    forVersion: "1.1.0",
+    forVersion: "1.2.0",
     permissions: {
       platform: {
         roles: {

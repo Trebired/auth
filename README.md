@@ -69,7 +69,13 @@ Roles are ordered one of two ways, chosen per scope with `rank`. Under `"declare
 
 `declared(scope)` lists every permission the scope knows: the `declared` list when given, the roles' permissions otherwise, and the alias keys in both cases. `validatePermissions(scope, permissions)` splits a list into `valid` and `invalid`, which is what a role editor needs before saving. `expand(scope, permission)` returns what a requirement asks for after alias expansion, and answers synchronously for code that already holds a permission list.
 
+### Deciding from a permission list
+
+A request that already holds a viewer's permissions should not resolve the role again. `permissions.allows(scope, held, permission)` answers from that list, and `permissions.satisfiedBy(scope, held, requirement)` takes an `{ all }` or `{ any }` requirement. Both are synchronous, apply the same alias expansion and wildcard rule as `can()`, and are the rule `can()` itself uses.
+
 ### Where a role assignment lives
+
+`readRoleKey(entry)` reads the role out of a membership record however the application spells it: a plain string, `{ role: "owner" }`, `{ role_key }`, `{ key }`, or a map marking the current one with `{ current: true }`.
 
 By default a subject carries its own roles. When the assignment lives somewhere else, such as a membership row on the organization, pass `roleKey`: it is called with the subject, the scope and the entity id, and returns the role key for that pair. It may be asynchronous, so it can read the application's tables.
 
