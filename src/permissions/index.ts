@@ -3,29 +3,45 @@ import type {
   AuthSubject,
   PermissionCheckScope,
   PermissionRequirement,
+  ResolvedRole,
+  RoleProvider,
   ScopeDefinition,
-  SubjectRoles,
 } from "#hfap0x87te96";
+import { declaredPermissions, expandPermissions, resolveRoleAlias } from "./aliases.js";
 import { isPermissionKey, normalizePermission, normalizeRoleKey, WILDCARD } from "./keys.js";
+import { outranks, rankRole, roleOrder } from "./hierarchy.js";
+import { readSubjectRoles, roleKeyForScope } from "./subject.js";
 
 type PermissionEngine = ReturnType<typeof createPermissionEngine>;
 
-function readSubjectRoles(subject: AuthSubject | null | undefined): SubjectRoles {
-  const roles = subject && subject.roles && typeof subject.roles === "object" ? subject.roles : {};
-  return roles as SubjectRoles;
+type EngineOptions = {
+  roleProvider?: RoleProvider | null;
+};
+
+function scopeName(scope: unknown) {
+  return normalize.toString(scope).trim().toLowerCase();
 }
 
-function roleKeyForScope(subject: AuthSubject | null | undefined, scope: string, entityId: string) {
-  const assigned = readSubjectRoles(subject)[scope];
-  if (typeof assigned === "string") return normalizeRoleKey(assigned);
-  if (!assigned || typeof assigned !== "object") return "";
-  if (entityId) return normalizeRoleKey(assigned[entityId]);
-  const values = Object.values(assigned);
-  return values.length === 1 ? normalizeRoleKey(values[0]) : "";
+async function resolveScopeRole(
+  definition: ScopeDefinition | null,
+  roleProvider: RoleProvider | null,
+  target: { entityId: string; roleKey: unknown; scope: string },
+): Promise<ResolvedRole|null> {
+  const key = resolveRoleAlias(target.roleKey, definition);
+  if (!key) return null;
+  const configured = definition && definition.roles ? definition.roles[key] : null;
+  const provided = configured || (roleProvider ? await roleProvider(target.scope, key, target.entityId) : null);
+  if (!provided) return null;
+  return {
+    key,
+    label: normalize.toString(provided.label) || key,
+    permissions: expandPermissions(provided.permissions, definition),
+    source: configured ? "config" : "provider",
+  };
 }
 
-function meetsRequirement(
-  can: (subject: AuthSubject | null | undefined, permission: unknown, target: PermissionCheckScope) => boolean,
+async function meetsRequirement(
+  can: (subject: AuthSubject | null | undefined, permission: unknown, target: PermissionCheckScope) => Promise<boolean>,
   subject: AuthSubject | null | undefined,
   requirement: PermissionRequirement,
   target: PermissionCheckScope,
@@ -33,65 +49,91 @@ function meetsRequirement(
   const all = Array.isArray(requirement && requirement.all) ? requirement.all : [];
   const any = Array.isArray(requirement && requirement.any) ? requirement.any : [];
   if (!all.length && !any.length) return false;
-  if (all.length && !all.every((permission) => can(subject, permission, target))) return false;
-  return !any.length || any.some((permission) => can(subject, permission, target));
+  for (const permission of all) if (!(await can(subject, permission, target))) return false;
+  if (!any.length) return true;
+  for (const permission of any) if (await can(subject, permission, target)) return true;
+  return false;
 }
 
-function scopeDeclares(definition: ScopeDefinition | null, permissionInput: unknown) {
-  if (!definition) return false;
-  const permission = normalizePermission(permissionInput);
-  return Object.values(definition.roles || {}).some((role) =>
-    Array.isArray(role.permissions) && role.permissions.map(normalizePermission).includes(permission),
-  );
-}
-
-function createPermissionEngine(scopes: Record<string, ScopeDefinition>) {
-  function scopeDefinition(scope: unknown): ScopeDefinition | null {
-    const key = normalize.toString(scope).trim().toLowerCase();
-    return key && scopes[key] ? scopes[key] : null;
-  }
-
-  function permissionsForRole(scope: string, roleKey: string) {
-    const definition = scopeDefinition(scope);
-    const role = definition && definition.roles ? definition.roles[roleKey] : null;
-    if (!role || !Array.isArray(role.permissions)) return [] as string[];
-    return role.permissions.map(normalizePermission).filter(Boolean);
-  }
-
-  function subjectPermissions(subject: AuthSubject | null | undefined, target: PermissionCheckScope) {
-    const scope = normalize.toString(target && target.scope).trim().toLowerCase();
-    const entityId = normalize.toString(target && target.entityId);
-    const roleKey = roleKeyForScope(subject, scope, entityId);
-    return roleKey ? permissionsForRole(scope, roleKey) : ([] as string[]);
-  }
-
-  function grantedDirectly(subject: AuthSubject | null | undefined, permission: string, target: PermissionCheckScope) {
-    const granted = subjectPermissions(subject, target);
-    return granted.includes(WILDCARD) || granted.includes(permission);
-  }
-
-  function can(subject: AuthSubject | null | undefined, permissionInput: unknown, target: PermissionCheckScope): boolean {
-    const permission = normalizePermission(permissionInput);
-    if (!subject || !isPermissionKey(permission)) return false;
-    if (grantedDirectly(subject, permission, target)) return true;
-    const definition = scopeDefinition(target && target.scope);
-    const overrides = definition && Array.isArray(definition.overriddenBy) ? definition.overriddenBy : [];
-    return overrides.some((override) =>
-      grantedDirectly(subject, normalizePermission(override.permission), { scope: override.scope }),
-    );
+function createScopeQueries(definitionFor: (scope: unknown) => ScopeDefinition | null) {
+  function validatePermissions(scope: unknown, permissions: unknown) {
+    const declared = new Set(declaredPermissions(definitionFor(scope)));
+    const list = Array.isArray(permissions) ? permissions.map(normalizePermission).filter(Boolean) : [];
+    const invalid = list.filter((permission) => !isPermissionKey(permission) || !declared.has(permission));
+    return { invalid, ok: invalid.length === 0, valid: list.filter((permission) => !invalid.includes(permission)) };
   }
 
   return {
-    can,
-    isDeclared: (scope: unknown, permission: unknown) => scopeDeclares(scopeDefinition(scope), permission),
-    permissionsForRole,
-    roleKeyForScope,
-    satisfies: (subject: AuthSubject | null | undefined, requirement: PermissionRequirement, target: PermissionCheckScope) =>
-    meetsRequirement(can, subject, requirement, target),
-    subjectPermissions,
+    declared: (scope: unknown) => declaredPermissions(definitionFor(scope)),
+    isDeclared: (scope: unknown, permission: unknown) =>
+    declaredPermissions(definitionFor(scope)).includes(normalizePermission(permission)),
+    outranks: (scope: unknown, actorRoleKey: unknown, targetRoleKey: unknown) =>
+    outranks(definitionFor(scope), actorRoleKey, targetRoleKey),
+    rank: (scope: unknown, roleKey: unknown) => rankRole(definitionFor(scope), roleKey),
+    roleOrder: (scope: unknown) => roleOrder(definitionFor(scope)),
+    validatePermissions,
   };
 }
 
-export { createPermissionEngine, readSubjectRoles, roleKeyForScope };
+function createPermissionEngine(scopes: Record<string, ScopeDefinition>, options: EngineOptions = {}) {
+  const roleProvider = typeof options.roleProvider === "function" ? options.roleProvider : null;
+
+  function definitionFor(scope: unknown): ScopeDefinition | null {
+    const key = scopeName(scope);
+    return key && scopes[key] ? scopes[key] : null;
+  }
+
+  async function resolveRole(scope: unknown, roleKeyInput: unknown, entityId = "") {
+    return await resolveScopeRole(definitionFor(scope), roleProvider, {
+        entityId: normalize.toString(entityId),
+        roleKey: roleKeyInput,
+        scope: scopeName(scope),
+    });
+  }
+
+  async function subjectRole(subject: AuthSubject | null | undefined, target: PermissionCheckScope) {
+    const entityId = normalize.toString(target && target.entityId);
+    const roleKey = roleKeyForScope(subject, scopeName(target && target.scope), entityId);
+    return roleKey ? await resolveRole(target && target.scope, roleKey, entityId) : null;
+  }
+
+  async function grants(subject: AuthSubject | null | undefined, permission: string, target: PermissionCheckScope) {
+    const role = await subjectRole(subject, target);
+    if (!role) return false;
+    return role.permissions.includes(WILDCARD) || role.permissions.includes(permission);
+  }
+
+  async function can(
+    subject: AuthSubject | null | undefined,
+    permissionInput: unknown,
+    target: PermissionCheckScope,
+  ): Promise<boolean> {
+    const permission = normalizePermission(permissionInput);
+    if (!subject || !isPermissionKey(permission)) return false;
+    if (await grants(subject, permission, target)) return true;
+    const overrides = definitionFor(target && target.scope)?.overriddenBy || [];
+    for (const override of overrides) {
+      if (await grants(subject, normalizePermission(override.permission), { scope: override.scope })) return true;
+    }
+    return false;
+  }
+
+  return {
+    ...createScopeQueries(definitionFor),
+    can,
+    resolveRole,
+    roleKeyForScope,
+    satisfies: (
+      subject: AuthSubject | null | undefined,
+      requirement: PermissionRequirement,
+      target: PermissionCheckScope,
+    ) => meetsRequirement(can, subject, requirement, target),
+    subjectRole,
+  };
+}
+
+export { createPermissionEngine, normalizeRoleKey, readSubjectRoles, roleKeyForScope };
+export *from "./aliases.js";
+export *from "./hierarchy.js";
 export *from "./keys.js";
-export type { PermissionEngine };
+export type { EngineOptions, PermissionEngine };

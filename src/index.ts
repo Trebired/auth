@@ -1,5 +1,5 @@
 import { normalizers as normalize } from "@trebired/utils";
-import type { AuthConfig, AuthStore, AuthSubject, PermissionCheckScope } from "./types.js";
+import type { AuthConfig, AuthStore, AuthSubject, PermissionCheckScope, RoleProvider } from "./types.js";
 import { checkPassword, hashPassword, verifyPassword } from "./credentials/index.js";
 import { createCodeManager } from "./codes/index.js";
 import { createPermissionEngine } from "./permissions/index.js";
@@ -12,6 +12,7 @@ import { sessionCookieOptions, signSessionToken, verifySessionToken } from "./to
 
 type AuthOptions = {
   config?: Parameters<typeof normalizeAuthConfig>[0];
+  roles?: RoleProvider | null;
   secret: string;
   store: AuthStore;
 };
@@ -23,7 +24,7 @@ function createAuth(options: AuthOptions) {
   const sessions = createSessionManager(store, config.session);
   const twoFactor = createTwoFactorManager(store, config.twoFactor);
   const codes = createCodeManager(store, config.codes, config.password);
-  const permissions = createPermissionEngine(config.permissions);
+  const permissions = createPermissionEngine(config.permissions, { roleProvider: options.roles });
   const { authenticate, signIn, startSession } = createSignInFlow({ config, secret, sessions, store, twoFactor });
 
   async function setPassword(subject: AuthSubject, password: string) {
@@ -35,8 +36,8 @@ function createAuth(options: AuthOptions) {
     return check;
   }
 
-  function can(subject: AuthSubject | null, permission: unknown, scope: PermissionCheckScope) {
-    return permissions.can(subject, permission, scope);
+  async function can(subject: AuthSubject | null, permission: unknown, scope: PermissionCheckScope) {
+    return await permissions.can(subject, permission, scope);
   }
 
   return {

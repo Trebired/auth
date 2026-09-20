@@ -83,20 +83,62 @@ async function verifyCodes(auth, store) {
   assert.equal(await auth.codes.redeemActivationCode(person(), activation), false, "an activation code is used once");
 }
 
-function verifyPermissions(auth) {
+async function verifyPermissions(auth) {
   const admin = subject("root", { roles: { platform: "admin" } });
   const viewer = subject("vee", { roles: { platform: "viewer" } });
   const owner = subject("owner", { roles: { organization: { org1: "owner" } } });
-  assert.equal(auth.can(admin, "delete:platform.user", { scope: "platform" }), true, "a wildcard role allows anything");
-  assert.equal(auth.can(viewer, "view:platform.user", { scope: "platform" }), true, "a listed permission is allowed");
-  assert.equal(auth.can(viewer, "delete:platform.user", { scope: "platform" }), false, "an unlisted one is refused");
-  assert.equal(auth.can(owner, "view:organization.member", { entityId: "org1", scope: "organization" }), true, "entity roles apply");
-  assert.equal(auth.can(owner, "view:organization.member", { entityId: "org2", scope: "organization" }), false, "roles do not leak between entities");
-  assert.equal(auth.can(admin, "view:organization.member", { entityId: "org2", scope: "organization" }), true, "an override scope wins");
-  assert.equal(auth.can(null, "view:platform.user", { scope: "platform" }), false, "nobody is never allowed");
-  assert.equal(auth.permissions.satisfies(viewer, { any: ["view:platform.user", "x:y"] }, { scope: "platform" }), true, "any requirements pass");
+  assert.equal(await auth.can(admin, "delete:platform.user", { scope: "platform" }), true, "a wildcard role allows anything");
+  assert.equal(await auth.can(viewer, "view:platform.user", { scope: "platform" }), true, "a listed permission is allowed");
+  assert.equal(await auth.can(viewer, "delete:platform.user", { scope: "platform" }), false, "an unlisted one is refused");
+  const inOrg = { entityId: "org1", scope: "organization" };
+  assert.equal(await auth.can(owner, "view:organization.member", inOrg), true, "entity roles apply");
+  assert.equal(await auth.can(owner, "view:organization.member", { entityId: "org2", scope: "organization" }), false, "roles do not leak");
+  assert.equal(await auth.can(admin, "view:organization.member", { entityId: "org2", scope: "organization" }), true, "an override wins");
+  assert.equal(await auth.can(null, "view:platform.user", { scope: "platform" }), false, "nobody is never allowed");
+  const any = { any: ["view:platform.user", "x:y"] };
+  assert.equal(await auth.permissions.satisfies(viewer, any, { scope: "platform" }), true, "any requirements pass");
   const both = { all: ["view:platform.user", "delete:platform.user"] };
-  assert.equal(auth.permissions.satisfies(viewer, both, { scope: "platform" }), false, "all requirements hold the line");
+  assert.equal(await auth.permissions.satisfies(viewer, both, { scope: "platform" }), false, "all requirements hold the line");
+}
+
+async function verifyRoleEngine(dist, store) {
+  const auth = dist.createAuth({
+      config: {
+        permissions: {
+          platform: {
+            aliases: { "manage:platform.user": ["create:platform.user", "delete:platform.user"] },
+            roleAliases: { platform_admin: "admin" },
+            roles: {
+              viewer: { permissions: ["view:platform.user"] },
+              manager: { permissions: ["manage:platform.user"] },
+              admin: { permissions: ["all"] },
+            },
+          },
+          organization: { roles: {} },
+        },
+      },
+      roles: (scope, key) => (scope === "organization" && key === "stored_owner" ? { permissions: ["view:organization.member"] } : null),
+      secret: SECRET,
+      store,
+  });
+  const manager = subject("m", { roles: { platform: "manager" } });
+  assert.equal(await auth.can(manager, "delete:platform.user", { scope: "platform" }), true, "an alias expands to its permissions");
+  assert.equal(await auth.can(manager, "manage:platform.user", { scope: "platform" }), true, "the alias itself still answers");
+  assert.equal(await auth.can(manager, "view:platform.user", { scope: "platform" }), false, "an alias grants only its own list");
+  const aliased = subject("a", { roles: { platform: "platform_admin" } });
+  assert.equal(await auth.can(aliased, "delete:platform.user", { scope: "platform" }), true, "a role alias resolves to its role");
+  const stored = subject("s", { roles: { organization: { org9: "stored_owner" } } });
+  const target = { entityId: "org9", scope: "organization" };
+  assert.equal(await auth.can(stored, "view:organization.member", target), true, "a provider supplies roles the config does not");
+  const resolved = await auth.permissions.resolveRole("organization", "stored_owner", "org9");
+  assert.equal(resolved.source, "provider", "a provider role reports where it came from");
+  assert.equal(auth.permissions.outranks("platform", "admin", "viewer"), true, "a later role outranks an earlier one");
+  assert.equal(auth.permissions.outranks("platform", "viewer", "admin"), false, "an earlier role does not outrank a later one");
+  assert.equal(auth.permissions.rank("platform", "unknown_role"), Number.MAX_SAFE_INTEGER, "an unknown role ranks last");
+  const check = auth.permissions.validatePermissions("platform", ["view:platform.user", "invent:platform.thing"]);
+  assert.deepEqual(check.invalid, ["invent:platform.thing"], "undeclared permissions are reported");
+  assert.equal(check.ok, false, "a role with an undeclared permission is invalid");
+  assert.equal(auth.permissions.declared("platform").includes("create:platform.user"), true, "alias targets count as declared");
 }
 
 async function verifyExpress(dist, express, auth, store) {
@@ -113,8 +155,8 @@ async function verifyExpress(dist, express, auth, store) {
   express.requireAuth()({}, res, () => codes.push(200));
   assert.deepEqual(codes, [401], "an anonymous request is refused");
   const guard = express.requirePermission(auth, "view:platform.user", () => ({ scope: "platform" }));
-  guard({ viewer: subject("vee", { roles: { platform: "viewer" } }) }, res, () => codes.push(200));
-  guard({ viewer: subject("nope", { roles: {} }) }, res, () => codes.push(200));
+  await guard({ viewer: subject("vee", { roles: { platform: "viewer" } }) }, res, () => codes.push(200));
+  await guard({ viewer: subject("nope", { roles: {} }) }, res, () => codes.push(200));
   assert.deepEqual(codes, [401, 200, 403], "permission guards answer 403 without the permission");
   assert.equal(dist.sessionCookieOptions(auth.config.session, true).secure, true, "cookies stay secure when asked");
 }
@@ -132,7 +174,8 @@ async function main() {
   await verifySessionLimit(dist, store);
   await verifyTwoFactor(dist, auth, store);
   await verifyCodes(auth, store);
-  verifyPermissions(auth);
+  await verifyPermissions(auth);
+  await verifyRoleEngine(dist, store);
   await verifyExpress(dist, express, auth, store);
   log.info("verify.auth", "Auth verification succeeded.");
 }

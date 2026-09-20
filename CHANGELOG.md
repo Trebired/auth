@@ -4,6 +4,16 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 0.2.0
+
+- Added permission aliases. A scope declares `aliases`, where one key stands for a list, so a role holding `manage:platform.user` holds every permission that alias names without the list being copied into the role. The alias itself still answers a check.
+- Added `roleAliases`, which map an old or external role key onto a declared one.
+- Added a role provider. `createAuth({ roles })` takes a function called with the scope, role key and entity id when the config does not declare that role, so roles created at runtime and kept in the application's storage resolve like configured ones. A resolved role reports whether it came from config or from the provider.
+- Added role order: roles are declared weakest first, `rank()` returns that position, `outranks()` compares two roles, and an unknown role ranks last.
+- Added permission declaration and validation: `declared(scope)` lists every permission a scope knows, and `validatePermissions(scope, permissions)` splits a list into valid and invalid, which is what a role editor needs before saving.
+- Added role reading from a subject that marks its current role (`{ admin: { current: true } }`), alongside the plain `{ scope: "role" }` shape.
+- Changed `can()` and `satisfies()` to be asynchronous, because a role can come from storage. `requirePermission` awaits the decision.
+
 ## 0.1.0
 
 - Added password credentials: bcrypt hashing at a configurable cost, verification that runs against a dummy hash when the subject or hash is missing so an unknown identifier costs the same as a known one, and a policy check that reports which rules failed instead of a message.

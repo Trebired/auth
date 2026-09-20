@@ -13,6 +13,8 @@
   "#j58dgsvoh5ey": "./src/sessions/index.ts",
   "#kl34vj0hzcxp": "./src/flow.ts",
   "#l04g1rbs8bmx": "./src/state/index.ts",
+  "#ntcjrzjnqove": "./src/permissions/hierarchy.ts",
+  "#pqke6y9dopm2": "./src/permissions/aliases.ts",
   "#putecwujbpkg": "./src/permissions/keys.ts",
   "#qunkab4xtemc": "./scripts/verify/pack.mjs",
   "#t0rm13kctebz": "./examples/auth-config.ts",
@@ -20,5 +22,6 @@
   "#tat8s4sbqe1s": "./src/config/index.ts",
   "#tncys3cufz3c": "./src/tokens/index.ts",
   "#tscm28xzccwy": "./src/sessions/device.ts",
+  "#wiir3g9f354r": "./src/permissions/subject.ts",
   "#xvciy2zmrg48": "./src/permissions/index.ts"
 }

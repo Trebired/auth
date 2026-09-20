@@ -43,6 +43,12 @@
       "#l04g1rbs8bmx": [
         "../../../src/state/index.ts"
       ],
+      "#ntcjrzjnqove": [
+        "../../../src/permissions/hierarchy.ts"
+      ],
+      "#pqke6y9dopm2": [
+        "../../../src/permissions/aliases.ts"
+      ],
       "#putecwujbpkg": [
         "../../../src/permissions/keys.ts"
       ],
@@ -63,6 +69,9 @@
       ],
       "#tscm28xzccwy": [
         "../../../src/sessions/device.ts"
+      ],
+      "#wiir3g9f354r": [
+        "../../../src/permissions/subject.ts"
       ],
       "#xvciy2zmrg48": [
         "../../../src/permissions/index.ts"

@@ -59,7 +59,19 @@ Signing in opens a session record with its own id, device description, address, 
 
 ### Permissions
 
-A permission key is `action:resource`, such as `view:platform.user`. A role lists permission keys, or the single key `all`. A subject carries role assignments per scope: `{ platform: "admin", organization: { "<id>": "owner" } }`. `can(subject, permission, { scope, entityId })` resolves the role for that scope and entity and answers. A scope may declare `overriddenBy`, so a platform-wide permission can answer for every organization without copying roles.
+A permission key is `action:resource`, such as `view:platform.user`. A role lists permission keys, or the single key `all`. A subject carries role assignments per scope: `{ platform: "admin", organization: { "<id>": "owner" } }`. `can(subject, permission, { scope, entityId })` resolves the role for that scope and entity and answers. It is asynchronous, because roles can come from storage. A scope may declare `overriddenBy`, so a platform-wide permission can answer for every organization without copying roles.
+
+### Aliases, order and validation
+
+A scope may declare `aliases`, where one key stands for a list: a role holding `manage:platform.user` also holds every permission that alias names, and the alias itself still answers. `roleAliases` maps an old or external role key onto a declared one.
+
+Roles are declared weakest first. `rank(scope, roleKey)` returns that position, `outranks(scope, actor, target)` compares two roles, and an unknown role ranks last, so it outranks nothing.
+
+`declared(scope)` lists every permission the scope knows, taken from `declared` when given and from the roles and aliases otherwise. `validatePermissions(scope, permissions)` splits a list into `valid` and `invalid`, which is what a role editor needs before saving.
+
+### Roles from storage
+
+Roles that are created at runtime never fit in a config file. `createAuth({ roles })` takes a provider, called with the scope, role key and entity id when the config does not declare that role. A resolved role reports `source: "config"` or `source: "provider"`. Provider roles run through the same alias expansion, so storage holds the same keys an editor shows.
 
 ## Configuration
 

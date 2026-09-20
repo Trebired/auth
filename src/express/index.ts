@@ -46,13 +46,13 @@ function requireAuth(viewerKey = "viewer") {
 }
 
 function requirePermission(auth: Auth, permission: string, resolveScope: ScopeResolver, viewerKey = "viewer") {
-  return function requirePermitted(req: RequestLike, res: ResponseLike, next: () => void) {
+  return async function requirePermitted(req: RequestLike, res: ResponseLike, next: () => void) {
     const viewer = (req as Record<string, unknown>)[viewerKey] as never;
     if (!viewer) {
       res.status(401).json({ error: true, status_code: "unauthorized" });
       return;
     }
-    if (auth.can(viewer, permission, resolveScope(req))) return next();
+    if (await auth.can(viewer, permission, resolveScope(req))) return next();
     res.status(403).json({ error: true, status_code: "forbidden" });
   };
 }

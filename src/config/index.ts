@@ -44,7 +44,10 @@ function mergeScopes(input: Record<string, ScopeDefinition>|undefined): Record<s
     const scopeKey = normalize.toString(key).trim().toLowerCase();
     if (!scopeKey || !definition || typeof definition !== "object") continue;
     scopes[scopeKey] = {
+      aliases: definition.aliases && typeof definition.aliases === "object" ? definition.aliases : {},
+      declared: Array.isArray(definition.declared) ? definition.declared : [],
       overriddenBy: Array.isArray(definition.overriddenBy) ? definition.overriddenBy : [],
+      roleAliases: definition.roleAliases && typeof definition.roleAliases === "object" ? definition.roleAliases : {},
       roles: definition.roles && typeof definition.roles === "object" ? definition.roles : {},
     };
   }

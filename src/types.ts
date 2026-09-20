@@ -14,9 +14,25 @@ type ScopeOverride = {
 };
 
 type ScopeDefinition = {
+  aliases?: Record<string, string[]>;
+  declared?: string[];
   overriddenBy?: ScopeOverride[];
+  roleAliases?: Record<string, string>;
   roles: Record<string, RoleDefinition>;
 };
+
+type ResolvedRole = {
+  key: string;
+  label: string;
+  permissions: string[];
+  source: "config" | "provider";
+};
+
+type RoleProvider = (
+  scope: string,
+  roleKey: string,
+  entityId: string,
+) => Promise<RoleDefinition|null>|RoleDefinition | null;
 
 type PasswordPolicy = {
   minLength: number;
@@ -132,7 +148,9 @@ export type {
   PasswordPolicy,
   PermissionCheckScope,
   PermissionRequirement,
+  ResolvedRole,
   RoleDefinition,
+  RoleProvider,
   ScopeDefinition,
   ScopeOverride,
   SessionDevice,
