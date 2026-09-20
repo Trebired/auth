@@ -4,6 +4,10 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 0.9.0
+
+- Added `permissions.expand(scope, permission)`, which returns the permissions a requirement asks for after alias expansion. It answers synchronously, for code that holds a permission list already and cannot await a decision.
+
 ## 0.8.0
 
 - Changed device detection to read client hints: the `sec-ch-ua` brand list names the browser ahead of the user agent, and the record now carries `model`, `platform` and a `details` map holding the raw hints, so an application can show what it captured.

@@ -5,6 +5,7 @@
   "#7ofqxae2eykv": "./src/twofactor/totp.ts",
   "#833149qmly8f": "./src/express/index.ts",
   "#8975r0zvphjw": "./src/credentials/index.ts",
+  "#8n9yu3yedk7m": "./scripts/verify/permissions.mjs",
   "#9kzf4btso7n5": "./src/express/guards.ts",
   "#9or2tt6w6cys": "./src/attempts/index.ts",
   "#cnkg6dldxx2i": "./scripts/prepare-dist.mjs",

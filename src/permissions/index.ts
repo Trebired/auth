@@ -85,6 +85,7 @@ function createScopeQueries(definitionFor: (scope: unknown) => ScopeDefinition |
 
   return {
     declared: (scope: unknown) => declaredPermissions(definitionFor(scope)),
+    expand: (scope: unknown, permission: unknown) => requiredPermissions(permission, definitionFor(scope)),
     isDeclared: (scope: unknown, permission: unknown) =>
     declaredPermissions(definitionFor(scope)).includes(normalizePermission(permission)),
     roleOrder: (scope: unknown) => roleOrder(definitionFor(scope)),
