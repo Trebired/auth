@@ -63,7 +63,7 @@ jobs:
           bun run typecheck
           bun run build
           bun run verify:pack
-          bun run verify:grammar
+          bun run verify:auth
 
       - name: Publish package
         env:
