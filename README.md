@@ -129,6 +129,8 @@ export default defineConfig({
 
 Every key has a default, so a config states only what it changes. Durations are `7d`, `12h`, `30m`, `45s` or a plain number of seconds.
 
+`forVersion` is the first key and names the package version the config was written for. A config file whose major or minor differs from the installed package is refused rather than half-applied; a config passed straight to `normalizeAuthConfig` may omit it.
+
 ## Runtime
 
 The signing secret is passed to `createAuth`, never read from the environment by the package. Rotating it invalidates every issued token.
@@ -148,6 +150,10 @@ An `Auth` instance exposes `signIn`, `startSession`, `authenticate`, `signOut`, 
 ### Config
 
 `defineConfig`, `loadAuthConfig`, `normalizeAuthConfig`, `DEFAULT_CONFIG`.
+
+### Logging
+
+`setAuthLogger(logger, adapter)` binds the application's logger. Without it the package stays silent: it logs through `@trebired/logger-adapter` with a noop fallback and never writes to the console itself.
 
 ### Express
 

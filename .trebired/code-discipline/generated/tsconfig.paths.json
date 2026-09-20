@@ -4,6 +4,9 @@
       "#0vem9564uehl": [
         "../../../src/store/index.ts"
       ],
+      "#4n2n9id6j15b": [
+        "../../../src/package-metadata.ts"
+      ],
       "#6bqo5aavo6oc": [
         "../../../src/index.ts"
       ],
@@ -54,6 +57,9 @@
       ],
       "#l04g1rbs8bmx": [
         "../../../src/state/index.ts"
+      ],
+      "#lavracp1xbi8": [
+        "../../../src/logging.ts"
       ],
       "#ntcjrzjnqove": [
         "../../../src/permissions/hierarchy.ts"

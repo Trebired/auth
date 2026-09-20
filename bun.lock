@@ -6,7 +6,6 @@
       "name": "@trebired/auth",
       "dependencies": {
         "@package/logger-adapter": "npm:@trebired/logger-adapter@^0.6.0",
-        "@trebired/result": "^1.2.8",
         "@trebired/utils": "^0.9.6",
         "bcryptjs": "^2.4.3",
         "jsonwebtoken": "^9.0.3",
@@ -31,8 +30,6 @@
     "@trebired/code-discipline": ["@trebired/code-discipline@7.2.3", "", { "dependencies": { "@package/logger": "npm:@trebired/logger@^3.0.0", "@package/result": "npm:@trebired/result@^1.2.8", "@trebired/utils": "^0.9.3", "typescript": "^6.0.3" }, "bin": { "code-discipline": "dist/cli.js" } }, "sha512-ftUJ0RenZgazegd1cAmtyeYQ2Db6lLgpNa30X1gFbsODBekrF5rZXbR4jj8rXzjzYBSN+FV/i86KeaEJvSntyQ=="],
 
     "@trebired/configs": ["@trebired/configs@0.4.0", "", {}, "sha512-y4GhZMVZqip2LcGqFzvm+ebVr0smuC1cYrU8uJvPlz9Lx7Qo4CJGRr9A5G+RYamlGA/WbBXjujw7mDZALBtwjQ=="],
-
-    "@trebired/result": ["@trebired/result@1.4.1", "", { "dependencies": { "@package/logger-adapter": "npm:@trebired/logger-adapter@^0.6.0", "@trebired/utils": "^0.9.3" } }, "sha512-OLOouHM+Na3m4+FyKE3vkiJyKDtkcFDcmr0IIrhh+PldryYwHiZPs0EK5gwexpggneDsygEDg38uHopFavBTCQ=="],
 
     "@trebired/utils": ["@trebired/utils@0.9.6", "", {}, "sha512-1IreVMoizUZ3RVMKSA97tUOoq5AM8SiwNYpe1lgZkE+8KhSb46xucNac9hsYPLsIVM8sddf3fjkoJQiwIjOQag=="],
 

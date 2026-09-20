@@ -201,6 +201,17 @@ async function verifyGuards(dist, express) {
   assert.deepEqual(seen.at(-1), 500, "an undeclared permission inside any is still reported");
 }
 
+function verifyConfigVersion(dist, config) {
+  let refused = "";
+  try {
+    dist.normalizeAuthConfig({ forVersion: "99.0.0" }, ".trebired/auth/config.ts");
+  } catch (error) {
+    refused = typeof error === "string" ? error : String(error && error.message);
+  }
+  assert.equal(refused.includes("99.0.0"), true, "a config written for another major is refused");
+  assert.equal(dist.normalizeAuthConfig(config).session.cookieName, "token", "a config for this version is accepted");
+}
+
 async function verifyExpress(dist, express, auth, store) {
   const person = store.subjects.get("ada");
   await auth.setPassword(person, "Str0ng!Passw0rd");
@@ -235,6 +246,7 @@ async function main() {
   assert.equal(dist.generateCode({ alphabet: "AB", length: 8, ttl: "" }).length, 8, "a code is generated at the asked length");
   assert.equal(dist.codeIsExpired(new Date(Date.now() - 1000).toISOString()), true, "a past expiry reads as expired");
   assert.equal(dist.describeDevice({ "user-agent": "Mozilla/5.0 Firefox/130.0" }).browserName, "Firefox", "a device is described from headers");
+  verifyConfigVersion(dist, config);
   await verifyPasswords(auth);
   const signed = await verifySignIn(auth, store);
   await verifySessions(auth, store, signed);

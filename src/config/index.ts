@@ -1,6 +1,8 @@
 import path from "node:path";
 import { pathToFileURL } from "node:url";
-import { normalizers as normalize } from "@trebired/utils";
+import { assertCompatibleForVersion, normalizers as normalize } from "@trebired/utils";
+import { authLog } from "#lavracp1xbi8";
+import { PACKAGE_NAME, PACKAGE_VERSION } from "#4n2n9id6j15b";
 import type { AuthConfig, AuthConfigInput, CodePolicy, ScopeDefinition } from "#hfap0x87te96";
 
 const CONFIG_RELATIVE_PATH = ".trebired/auth/config.ts";
@@ -24,6 +26,11 @@ const DEFAULT_CONFIG: AuthConfig = {
   session: { cookieName: "token", idleTimeout: "", maxPerSubject: 20, ttl: "7d" },
   twoFactor: { digits: 6, issuer: "", pendingTtl: "10m", secretBytes: 20, step: 30, window: 1 },
 };
+
+function isVersionFailure(error: unknown) {
+  const text = typeof error === "string" ? error : normalize.toString(error && (error as Error).message);
+  return text.includes("[FAIL, config.version]") || text.includes(PACKAGE_NAME);
+}
 
 function defineConfig(config: AuthConfigInput): AuthConfigInput {
   return config;
@@ -56,8 +63,22 @@ function mergeScopes(input: Record<string, ScopeDefinition>|undefined): Record<s
   return scopes;
 }
 
-function normalizeAuthConfig(input: AuthConfigInput | null | undefined): AuthConfig {
+function checkForVersion(source: AuthConfigInput, configPath = "") {
+  return assertCompatibleForVersion({
+      compatibility: "major-minor",
+      config: source,
+      configPath,
+      forVersion: source.forVersion,
+      label: PACKAGE_NAME,
+      packageName: PACKAGE_NAME,
+      packageVersion: PACKAGE_VERSION,
+      requireForVersion: Boolean(configPath),
+  });
+}
+
+function normalizeAuthConfig(input: AuthConfigInput | null | undefined, configPath = ""): AuthConfig {
   const source = input && typeof input === "object" ? input : {};
+  checkForVersion(source, configPath);
   return {
     codes: {
       activation: mergeCodePolicy(DEFAULT_CONFIG.codes.activation, source.codes?.activation),
@@ -77,8 +98,10 @@ async function loadAuthConfig(rootDir: string = process.cwd()): Promise<AuthConf
   try {
     const loaded = await import(pathToFileURL(file).href);
     const config = loaded && typeof loaded === "object" ? loaded.default ||loaded : null;
-    return normalizeAuthConfig(config as AuthConfigInput);
-  } catch {
+    return normalizeAuthConfig(config as AuthConfigInput, file);
+  } catch (error) {
+    if (isVersionFailure(error)) throw error;
+    authLog().warn("config", "auth config was not read, using defaults", { file });
     return normalizeAuthConfig(null);
   }
 }

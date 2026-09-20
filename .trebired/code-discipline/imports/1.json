@@ -1,5 +1,6 @@
 {
   "#0vem9564uehl": "./src/store/index.ts",
+  "#4n2n9id6j15b": "./src/package-metadata.ts",
   "#6bqo5aavo6oc": "./src/index.ts",
   "#6jvab6c9le14": "./src/crypto/index.ts",
   "#7ofqxae2eykv": "./src/twofactor/totp.ts",
@@ -17,6 +18,7 @@
   "#j58dgsvoh5ey": "./src/sessions/index.ts",
   "#kl34vj0hzcxp": "./src/flow.ts",
   "#l04g1rbs8bmx": "./src/state/index.ts",
+  "#lavracp1xbi8": "./src/logging.ts",
   "#ntcjrzjnqove": "./src/permissions/hierarchy.ts",
   "#pqke6y9dopm2": "./src/permissions/aliases.ts",
   "#putecwujbpkg": "./src/permissions/keys.ts",

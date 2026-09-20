@@ -4,6 +4,12 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 0.11.0
+
+- Added `forVersion` checking. A config file written for a different major or minor than the installed package is now refused instead of half-applied, and a config that cannot be read logs a warning rather than failing silently.
+- Added `setAuthLogger`, so the application binds its logger. The package logs through `@trebired/logger-adapter` and stays silent until it is given one.
+- Removed the unused `@trebired/result` dependency.
+
 ## 0.10.0
 
 - Exported `generateCode` and `codeIsExpired`, so an application that issues its own codes uses the same generator and expiry rule as the package.

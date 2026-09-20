@@ -71,6 +71,8 @@ type Auth = ReturnType<typeof createAuth>;
 
 export { createAuth };
 export { createAttemptLimiter } from "./attempts/index.js";
+export { setAuthLogger } from "./logging.js";
+export { PACKAGE_NAME, PACKAGE_VERSION } from "./package-metadata.js";
 export { createMemoryStore } from "./store/index.js";
 export { createProtectedStore, protectState, revealState } from "./store/protected.js";
 export { createSecretCipher, isEncryptedSecret } from "./crypto/index.js";
