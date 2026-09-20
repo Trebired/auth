@@ -1,0 +1,72 @@
+{
+  "compilerOptions": {
+    "paths": {
+      "#0vem9564uehl": [
+        "../../../src/store/index.ts"
+      ],
+      "#6bqo5aavo6oc": [
+        "../../../src/index.ts"
+      ],
+      "#7ofqxae2eykv": [
+        "../../../src/twofactor/totp.ts"
+      ],
+      "#833149qmly8f": [
+        "../../../src/express/index.ts"
+      ],
+      "#8975r0zvphjw": [
+        "../../../src/credentials/index.ts"
+      ],
+      "#cnkg6dldxx2i": [
+        "../../../scripts/prepare-dist.mjs"
+      ],
+      "#dy2ngxa7cuc1": [
+        "../../../src/twofactor/base32.ts"
+      ],
+      "#fpi2p5hx4kdh": [
+        "../../logger/config.ts"
+      ],
+      "#hfap0x87te96": [
+        "../../../src/types.ts"
+      ],
+      "#ht7e3f6s8ckw": [
+        "../../../src/twofactor/index.ts"
+      ],
+      "#iszwn0hk5r0u": [
+        "../../../scripts/verify/auth.mjs"
+      ],
+      "#j58dgsvoh5ey": [
+        "../../../src/sessions/index.ts"
+      ],
+      "#kl34vj0hzcxp": [
+        "../../../src/flow.ts"
+      ],
+      "#l04g1rbs8bmx": [
+        "../../../src/state/index.ts"
+      ],
+      "#putecwujbpkg": [
+        "../../../src/permissions/keys.ts"
+      ],
+      "#qunkab4xtemc": [
+        "../../../scripts/verify/pack.mjs"
+      ],
+      "#t0rm13kctebz": [
+        "../../../examples/auth-config.ts"
+      ],
+      "#tal8x7fm6w50": [
+        "../../../src/codes/index.ts"
+      ],
+      "#tat8s4sbqe1s": [
+        "../../../src/config/index.ts"
+      ],
+      "#tncys3cufz3c": [
+        "../../../src/tokens/index.ts"
+      ],
+      "#tscm28xzccwy": [
+        "../../../src/sessions/device.ts"
+      ],
+      "#xvciy2zmrg48": [
+        "../../../src/permissions/index.ts"
+      ]
+    }
+  }
+}
