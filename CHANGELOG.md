@@ -4,6 +4,14 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 1.0.0
+
+The package now owns every authentication decision a product needs, and its API is stable.
+
+- Added `guard`, called with the subject after the password is verified. A string it returns refuses the sign-in with `reason: "rejected"` and that reason, so an application enforces suspension, deletion or pending activation without reimplementing sign-in.
+- Added the activation queries `needsActivation`, `activationState` and `matchesActivationCode`, next to the existing issue and redeem.
+- No breaking changes since 0.11.0.
+
 ## 0.11.0
 
 - Added `forVersion` checking. A config file written for a different major or minor than the installed package is now refused instead of half-applied, and a config that cannot be read logs a warning rather than failing silently.

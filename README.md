@@ -81,6 +81,14 @@ Roles that are created at runtime never fit in a config file. `createAuth({ role
 
 Failed sign-ins are counted per address, or per identifier when the caller passes no address, inside a rolling window set by `login: { maxAttempts, window }`. An attempt made while blocked returns `reason: "rate-limited"` with `retryAfterMs` and never reaches the store, and a successful sign-in clears the count. `auth.attempts` exposes `read`, `fail`, `clear` and `reset`, so an application can count its own events against the same limiter or clear a block from an admin screen.
 
+### Account states
+
+Credentials answer whether the password is right, not whether the account may sign in. An application that suspends, deletes or holds accounts for activation passes `guard`: it is called with the subject once the password has been verified, and any string it returns refuses the sign-in with `reason: "rejected"` and that string as `rejection`. No session is opened and no token is issued.
+
+### Activation
+
+`codes.issueActivationCode(subject)` issues a code, `codes.redeemActivationCode(subject, code)` spends it once, and `codes.matchesActivationCode(subject, code)` checks one without spending it. `codes.needsActivation(subject)` is true while a code is issued, unused and unexpired, and `codes.activationState(subject)` reports the same as fields. Codes are compared case-insensitively and expire on `codes.activation.ttl`.
+
 ### Account changes
 
 `changePassword(subject, current, next, { revokeOtherSessions, keepSessionId })` verifies the current password, refuses the same password again, checks the new one against the policy, and writes the hash and the session list in one save. It answers `invalid-password`, `reused-password`, `weak-password` or `ok`, with the failed policy rules when it is the password that is weak.
@@ -145,7 +153,7 @@ TOTP follows RFC 6238 with SHA-1, the configured digit count and step, and a dri
 
 `createAuth`, `createAttemptLimiter`, `createMemoryStore`, `createProtectedStore`, `createSecretCipher`, `isEncryptedSecret`, `protectState`, `revealState`, `checkPassword`, `hashPassword`, `verifyPassword`, `createPermissionEngine`, `readAuthState`, `isSessionExpired`, `signSessionToken`, `verifySessionToken`, `sessionCookieOptions`, `durationToMs`, `generateCode`, `codeIsExpired`, `describeDevice`, `normalizeSessionDevice`, `generateSecret`, `totp`, `verifyTotp`, `otpauthUrl`, and the permission key helpers.
 
-An `Auth` instance exposes `signIn`, `startSession`, `authenticate`, `signOut`, `setPassword`, `changePassword`, `revealBackupCode`, `checkPassword`, `can`, `loadSubject`, `readState`, `attempts`, `cookieOptions`, `config`, and the `sessions`, `twoFactor`, `codes` and `permissions` managers.
+An `Auth` instance exposes `signIn` (with `guard`), `startSession`, `authenticate`, `signOut`, `setPassword`, `changePassword`, `revealBackupCode`, `checkPassword`, `can`, `loadSubject`, `readState`, `attempts`, `cookieOptions`, `config`, and the `sessions`, `twoFactor`, `codes` and `permissions` managers.
 
 ### Config
 

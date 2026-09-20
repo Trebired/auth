@@ -24,36 +24,46 @@ function codeIsExpired(expiresAt: unknown) {
   return Number.isFinite(expiry) && expiry <= Date.now();
 }
 
-function createCodeManager(store: AuthStore, codes: { activation: CodePolicy; backup: CodePolicy }, password: PasswordPolicy) {
+function createActivationQueries() {
+  function state(subject: AuthSubject) {
+    return readAuthState(subject).activation;
+  }
+
+  function usable(stored: ReturnType<typeof state>) {
+    return Boolean(stored.code) && !stored.usedAt && !codeIsExpired(stored.expiresAt);
+  }
+
   return {
-    async issueActivationCode(subject: AuthSubject) {
-      const state = readAuthState(subject);
-      const code = generateCode(codes.activation);
-      const saved = await store.saveAuthState(subject.id, {
-          ...state,
-          activation: { code, createdAt: new Date().toISOString(), expiresAt: codeExpiry(codes.activation), usedAt: "" },
-      });
-      return saved ? code : null;
+    activationState(subject: AuthSubject) {
+      const stored = state(subject);
+      return {
+        code: stored.code,
+        expired: Boolean(stored.code) && codeIsExpired(stored.expiresAt),
+        issued: Boolean(stored.code),
+        used: Boolean(stored.usedAt),
+      };
     },
+    matchesActivationCode(subject: AuthSubject, input: unknown) {
+      const stored = state(subject);
+      const code = normalize.toString(input).trim().toUpperCase();
+      return Boolean(code) && usable(stored) && stored.code.toUpperCase() === code;
+    },
+    needsActivation(subject: AuthSubject) {
+      return usable(state(subject));
+    },
+  };
+}
+
+function createBackupCodes(store: AuthStore, policy: CodePolicy, password: PasswordPolicy) {
+  return {
     async issueBackupCode(subject: AuthSubject) {
       const state = readAuthState(subject);
-      const code = generateCode(codes.backup);
+      const code = generateCode(policy);
       const saved = await store.saveAuthState(subject.id, {
           ...state,
           backupCode: { hash: await hashPassword(code, password), lastUsedAt: "", revealCount: 0, secret: code },
       });
       return saved ? code : null;
-    },
-    async redeemActivationCode(subject: AuthSubject, input: unknown) {
-      const state = readAuthState(subject);
-      const code = normalize.toString(input).trim().toUpperCase();
-      const stored = state.activation;
-      if (!code || !stored.code || stored.usedAt || codeIsExpired(stored.expiresAt)) return false;
-      if (stored.code.toUpperCase() !== code) return false;
-      return await store.saveAuthState(subject.id, {
-          ...state,
-          activation: { ...stored, usedAt: new Date().toISOString() },
-      });
     },
     async redeemBackupCode(subject: AuthSubject, input: unknown) {
       const state = readAuthState(subject);
@@ -71,6 +81,33 @@ function createCodeManager(store: AuthStore, codes: { activation: CodePolicy; ba
       const revealCount = state.backupCode.revealCount + 1;
       const saved = await store.saveAuthState(subject.id, { ...state, backupCode: { ...state.backupCode, revealCount } });
       return saved ? { code: state.backupCode.secret, revealCount } : null;
+    },
+  };
+}
+
+function createCodeManager(store: AuthStore, codes: { activation: CodePolicy; backup: CodePolicy }, password: PasswordPolicy) {
+  return {
+    ...createActivationQueries(),
+    ...createBackupCodes(store, codes.backup, password),
+    async issueActivationCode(subject: AuthSubject) {
+      const state = readAuthState(subject);
+      const code = generateCode(codes.activation);
+      const saved = await store.saveAuthState(subject.id, {
+          ...state,
+          activation: { code, createdAt: new Date().toISOString(), expiresAt: codeExpiry(codes.activation), usedAt: "" },
+      });
+      return saved ? code : null;
+    },
+    async redeemActivationCode(subject: AuthSubject, input: unknown) {
+      const state = readAuthState(subject);
+      const code = normalize.toString(input).trim().toUpperCase();
+      const stored = state.activation;
+      if (!code || !stored.code || stored.usedAt || codeIsExpired(stored.expiresAt)) return false;
+      if (stored.code.toUpperCase() !== code) return false;
+      return await store.saveAuthState(subject.id, {
+          ...state,
+          activation: { ...stored, usedAt: new Date().toISOString() },
+      });
     },
   };
 }

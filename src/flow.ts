@@ -8,15 +8,19 @@ import { signSessionToken, verifySessionToken } from "./tokens/index.js";
 import { verifyPassword } from "./credentials/index.js";
 
 type SignInResult = {
-  reason: "invalid-credentials" | "rate-limited" | "two-factor-required" | "ok";
+  reason: "invalid-credentials" | "rate-limited" | "rejected" | "two-factor-required" | "ok";
+  rejection?: string;
   retryAfterMs?: number;
   session: SessionRecord | null;
   subject: AuthSubject | null;
   token: string;
 };
 
+type SignInGuard = (subject: AuthSubject) => Promise<string>|string;
+
 type FlowInput = {
   config: AuthConfig;
+  guard?: SignInGuard | null;
   secret: string;
   sessions: ReturnType<typeof createSessionManager>;
   store: AuthStore;
@@ -24,7 +28,7 @@ type FlowInput = {
 };
 
 function createSignInFlow(input: FlowInput) {
-  const { config, secret, sessions, store, twoFactor } = input;
+  const { config, guard, secret, sessions, store, twoFactor } = input;
   const attempts = createAttemptLimiter(config.login);
 
   function attemptKey(identifier: unknown, context: SessionContext) {
@@ -50,6 +54,8 @@ function createSignInFlow(input: FlowInput) {
       return { reason: "invalid-credentials", session: null, subject: null, token: "" };
     }
     attempts.clear(key);
+    const rejection = typeof guard === "function" ? normalize.toString(await guard(subject)) : "";
+    if (rejection) return { reason: "rejected", rejection, session: null, subject, token: "" };
     if (twoFactor.isEnabled(subject)) return { reason: "two-factor-required", session: null, subject, token: "" };
     return await startSession(subject, context);
   }
@@ -77,4 +83,4 @@ function createSignInFlow(input: FlowInput) {
 }
 
 export { createSignInFlow };
-export type { SignInResult };
+export type { SignInGuard, SignInResult };

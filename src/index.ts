@@ -6,7 +6,7 @@ import { createPermissionEngine } from "./permissions/index.js";
 import { createSessionManager, isSessionExpired } from "./sessions/index.js";
 import { createTwoFactorManager } from "./twofactor/index.js";
 import { createAccountFlow } from "./account.js";
-import { createSignInFlow, type SignInResult } from "./flow.js";
+import { createSignInFlow, type SignInGuard, type SignInResult } from "./flow.js";
 import { normalizeAuthConfig } from "./config/index.js";
 import { createProtectedStore, revealState } from "./store/protected.js";
 import { createSecretCipher } from "./crypto/index.js";
@@ -16,6 +16,7 @@ import { sessionCookieOptions, signSessionToken, verifySessionToken } from "./to
 type AuthOptions = {
   cipher?: SecretCipher | null;
   config?: Parameters<typeof normalizeAuthConfig>[0];
+  guard?: SignInGuard | null;
   encryptionKey?: string;
   roleKey?: RoleKeyReader | null;
   roles?: RoleProvider | null;
@@ -38,7 +39,7 @@ function createAuth(options: AuthOptions) {
   const twoFactor = createTwoFactorManager(store, config.twoFactor);
   const codes = createCodeManager(store, config.codes, config.password);
   const permissions = createPermissionEngine(config.permissions, { roleKeyReader: options.roleKey, roleProvider: options.roles });
-  const flow = createSignInFlow({ config, secret, sessions, store, twoFactor });
+  const flow = createSignInFlow({ config, guard: options.guard, secret, sessions, store, twoFactor });
   const { attempts, authenticate, signIn, startSession } = flow;
 
   const account = createAccountFlow({ codes, config, store });
@@ -86,5 +87,5 @@ export { readAuthState } from "./state/index.js";
 export { durationToMs, sessionCookieOptions, signSessionToken, verifySessionToken } from "./tokens/index.js";
 export *from "./twofactor/totp.js";
 export *from "./permissions/keys.js";
-export type { Auth, AuthOptions, SignInResult };
+export type { Auth, AuthOptions, SignInGuard, SignInResult };
 export type *from "./types.js";

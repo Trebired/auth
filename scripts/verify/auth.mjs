@@ -212,6 +212,36 @@ function verifyConfigVersion(dist, config) {
   assert.equal(dist.normalizeAuthConfig(config).session.cookieName, "token", "a config for this version is accepted");
 }
 
+async function verifyGuardedSignIn(dist) {
+  const store = dist.createMemoryStore([subject("gate")]);
+  let state = "suspended";
+  const auth = dist.createAuth({ guard: () => state, secret: SECRET, store });
+  await auth.setPassword(await auth.loadSubject("gate"), "Str0ng!Passw0rd");
+  const refused = await auth.signIn("gate", "Str0ng!Passw0rd", {});
+  assert.equal(refused.reason, "rejected", "the guard refuses a sign-in the credentials would allow");
+  assert.equal(refused.rejection, "suspended", "the guard's reason is passed back");
+  assert.equal(refused.token, "", "a refused sign-in issues no token");
+  state = "";
+  assert.equal((await auth.signIn("gate", "Str0ng!Passw0rd", {})).reason, "ok", "the guard lets a good subject through");
+}
+
+async function verifyActivation(dist) {
+  const store = dist.createMemoryStore([subject("act")]);
+  const auth = dist.createAuth({ secret: SECRET, store });
+  let person = await auth.loadSubject("act");
+  assert.equal(auth.codes.needsActivation(person), false, "a subject without a code needs no activation");
+  const code = await auth.codes.issueActivationCode(person);
+  person = await auth.loadSubject("act");
+  assert.equal(auth.codes.needsActivation(person), true, "an issued code means activation is pending");
+  assert.equal(auth.codes.activationState(person).issued, true, "the state reports the code");
+  assert.equal(auth.codes.matchesActivationCode(person, "ZZZZZZ"), false, "a wrong code does not match");
+  assert.equal(auth.codes.matchesActivationCode(person, code.toLowerCase()), true, "the code matches regardless of case");
+  assert.equal(await auth.codes.redeemActivationCode(person, code), true, "the code is redeemed");
+  person = await auth.loadSubject("act");
+  assert.equal(auth.codes.needsActivation(person), false, "a redeemed code ends activation");
+  assert.equal(await auth.codes.redeemActivationCode(person, code), false, "a redeemed code cannot be used twice");
+}
+
 async function verifyExpress(dist, express, auth, store) {
   const person = store.subjects.get("ada");
   await auth.setPassword(person, "Str0ng!Passw0rd");
@@ -241,6 +271,8 @@ async function main() {
 
   await verifyEncryptedSecrets(dist);
   await verifyRateLimit(dist);
+  await verifyGuardedSignIn(dist);
+  await verifyActivation(dist);
   await verifyAccount(dist);
   await verifyGuards(dist, express);
   assert.equal(dist.generateCode({ alphabet: "AB", length: 8, ttl: "" }).length, 8, "a code is generated at the asked length");
