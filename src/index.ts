@@ -79,7 +79,7 @@ export { createProtectedStore, protectState, revealState } from "./store/protect
 export { createSecretCipher, isEncryptedSecret } from "./crypto/index.js";
 export { checkPassword, hashPassword, verifyPassword } from "./credentials/index.js";
 export { createPermissionEngine } from "./permissions/index.js";
-export { codeIsExpired, generateCode } from "./codes/index.js";
+export { codeIsExpired, generateCode, matchesActivationCode, needsActivation, readActivationState } from "./codes/index.js";
 export { describeDevice, normalizeSessionDevice } from "./sessions/device.js";
 export { isSessionExpired } from "./sessions/index.js";
 export { normalizeAuthConfig } from "./config/index.js";

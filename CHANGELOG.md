@@ -4,6 +4,10 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 1.1.0
+
+- Added `needsActivation`, `readActivationState` and `matchesActivationCode` as free functions on the root export. They answer from a subject alone, so code that runs where an `Auth` instance cannot be awaited, such as a record normalizer, still uses the package's rule instead of its own.
+
 ## 1.0.0
 
 The package now owns every authentication decision a product needs, and its API is stable.

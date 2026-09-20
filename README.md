@@ -87,7 +87,7 @@ Credentials answer whether the password is right, not whether the account may si
 
 ### Activation
 
-`codes.issueActivationCode(subject)` issues a code, `codes.redeemActivationCode(subject, code)` spends it once, and `codes.matchesActivationCode(subject, code)` checks one without spending it. `codes.needsActivation(subject)` is true while a code is issued, unused and unexpired, and `codes.activationState(subject)` reports the same as fields. Codes are compared case-insensitively and expire on `codes.activation.ttl`.
+`codes.issueActivationCode(subject)` issues a code, `codes.redeemActivationCode(subject, code)` spends it once, and `codes.matchesActivationCode(subject, code)` checks one without spending it. `codes.needsActivation(subject)` is true while a code is issued, unused and unexpired, and `codes.activationState(subject)` reports the same as fields. The same three answers are exported as free functions, for code that cannot await an instance. Codes are compared case-insensitively and expire on `codes.activation.ttl`.
 
 ### Account changes
 

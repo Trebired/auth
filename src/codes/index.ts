@@ -24,33 +24,32 @@ function codeIsExpired(expiresAt: unknown) {
   return Number.isFinite(expiry) && expiry <= Date.now();
 }
 
-function createActivationQueries() {
-  function state(subject: AuthSubject) {
-    return readAuthState(subject).activation;
-  }
-
-  function usable(stored: ReturnType<typeof state>) {
-    return Boolean(stored.code) && !stored.usedAt && !codeIsExpired(stored.expiresAt);
-  }
-
+function readActivationState(subject: AuthSubject) {
+  const stored = readAuthState(subject).activation;
   return {
-    activationState(subject: AuthSubject) {
-      const stored = state(subject);
-      return {
-        code: stored.code,
-        expired: Boolean(stored.code) && codeIsExpired(stored.expiresAt),
-        issued: Boolean(stored.code),
-        used: Boolean(stored.usedAt),
-      };
-    },
-    matchesActivationCode(subject: AuthSubject, input: unknown) {
-      const stored = state(subject);
-      const code = normalize.toString(input).trim().toUpperCase();
-      return Boolean(code) && usable(stored) && stored.code.toUpperCase() === code;
-    },
-    needsActivation(subject: AuthSubject) {
-      return usable(state(subject));
-    },
+    code: stored.code,
+    expired: Boolean(stored.code) && codeIsExpired(stored.expiresAt),
+    issued: Boolean(stored.code),
+    pending: Boolean(stored.code) && !stored.usedAt && !codeIsExpired(stored.expiresAt),
+    used: Boolean(stored.usedAt),
+  };
+}
+
+function needsActivation(subject: AuthSubject) {
+  return readActivationState(subject).pending;
+}
+
+function matchesActivationCode(subject: AuthSubject, input: unknown) {
+  const state = readActivationState(subject);
+  const code = normalize.toString(input).trim().toUpperCase();
+  return Boolean(code) && state.pending && state.code.toUpperCase() === code;
+}
+
+function createActivationQueries() {
+  return {
+    activationState: readActivationState,
+    matchesActivationCode,
+    needsActivation,
   };
 }
 
@@ -112,4 +111,4 @@ function createCodeManager(store: AuthStore, codes: { activation: CodePolicy; ba
   };
 }
 
-export { codeIsExpired, createCodeManager, generateCode };
+export { codeIsExpired, createCodeManager, generateCode, matchesActivationCode, needsActivation, readActivationState };

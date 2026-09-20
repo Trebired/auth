@@ -240,6 +240,8 @@ async function verifyActivation(dist) {
   person = await auth.loadSubject("act");
   assert.equal(auth.codes.needsActivation(person), false, "a redeemed code ends activation");
   assert.equal(await auth.codes.redeemActivationCode(person, code), false, "a redeemed code cannot be used twice");
+  assert.equal(dist.needsActivation(person), false, "the free function answers without an instance");
+  assert.equal(dist.readActivationState(person).used, true, "the free state reports a spent code");
 }
 
 async function verifyExpress(dist, express, auth, store) {
