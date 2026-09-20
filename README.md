@@ -73,6 +73,14 @@ Roles are ordered one of two ways, chosen per scope with `rank`. Under `"declare
 
 Roles that are created at runtime never fit in a config file. `createAuth({ roles })` takes a provider, called with the scope, role key and entity id when the config does not declare that role. A resolved role reports `source: "config"` or `source: "provider"`. Provider roles run through the same alias expansion, so storage holds the same keys an editor shows, and they are ranked like configured ones.
 
+### Secrets at rest
+
+The two-factor secret, the pending secret and the backup code are credentials, so they can be encrypted before they reach the store. `createAuth({ encryptionKey })` wraps the store: writes encrypt those three fields, reads decrypt them, and the rest of the record is passed through untouched. `createAuth({ cipher })` takes a cipher of your own instead, which is how an application keeps reading secrets written by an older scheme.
+
+The cipher is AES-256-GCM with a key derived from the given key by scrypt, and a value reads as `v1:<iv>:<tag>:<ciphertext>`. Decryption that fails, including a value written under a different key, yields an empty secret rather than an error. `isEncryptedSecret(value)` reports whether a value was written by this cipher.
+
+Subjects loaded through `auth.loadSubject(id)` and states read through `auth.readState(subject)` come back decrypted. A subject the application loaded by itself still holds the encrypted fields, so read it through one of those two before handing it to a manager.
+
 ## Configuration
 
 `.trebired/auth/config.ts`, read by `loadAuthConfig()`:
@@ -118,9 +126,9 @@ TOTP follows RFC 6238 with SHA-1, the configured digit count and step, and a dri
 
 ### Root
 
-`createAuth`, `createMemoryStore`, `checkPassword`, `hashPassword`, `verifyPassword`, `createPermissionEngine`, `readAuthState`, `isSessionExpired`, `signSessionToken`, `verifySessionToken`, `sessionCookieOptions`, `durationToMs`, `generateSecret`, `totp`, `verifyTotp`, `otpauthUrl`, and the permission key helpers.
+`createAuth`, `createMemoryStore`, `createProtectedStore`, `createSecretCipher`, `isEncryptedSecret`, `protectState`, `revealState`, `checkPassword`, `hashPassword`, `verifyPassword`, `createPermissionEngine`, `readAuthState`, `isSessionExpired`, `signSessionToken`, `verifySessionToken`, `sessionCookieOptions`, `durationToMs`, `generateSecret`, `totp`, `verifyTotp`, `otpauthUrl`, and the permission key helpers.
 
-An `Auth` instance exposes `signIn`, `startSession`, `authenticate`, `signOut`, `setPassword`, `checkPassword`, `can`, `cookieOptions`, `config`, and the `sessions`, `twoFactor`, `codes` and `permissions` managers.
+An `Auth` instance exposes `signIn`, `startSession`, `authenticate`, `signOut`, `setPassword`, `checkPassword`, `can`, `loadSubject`, `readState`, `cookieOptions`, `config`, and the `sessions`, `twoFactor`, `codes` and `permissions` managers.
 
 ### Config
 
@@ -138,4 +146,4 @@ An `Auth` instance exposes `signIn`, `startSession`, `authenticate`, `signOut`, 
 - No rate limiting, lockout, or audit log. Those need application storage and policy.
 - No OAuth, SAML, LDAP, or passkeys.
 - No role names or permission keys of its own. Both are configuration.
-- No secret management. The application supplies the signing secret and rotates it.
+- No secret management. The application supplies the signing and encryption keys and rotates them.

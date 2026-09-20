@@ -37,6 +37,11 @@ type RoleProvider = (
   entityId: string,
 ) => Promise<RoleDefinition|null>|RoleDefinition | null;
 
+type SecretCipher = {
+  decrypt: (value: unknown) => string;
+  encrypt: (value: unknown) => string;
+};
+
 type PasswordPolicy = {
   minLength: number;
   requireDigit: boolean;
@@ -157,6 +162,7 @@ export type {
   RoleProvider,
   ScopeDefinition,
   ScopeOverride,
+  SecretCipher,
   SessionDevice,
   SessionPolicy,
   SessionRecord,

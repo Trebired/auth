@@ -7,6 +7,9 @@
       "#6bqo5aavo6oc": [
         "../../../src/index.ts"
       ],
+      "#6jvab6c9le14": [
+        "../../../src/crypto/index.ts"
+      ],
       "#7ofqxae2eykv": [
         "../../../src/twofactor/totp.ts"
       ],
@@ -69,6 +72,9 @@
       ],
       "#tscm28xzccwy": [
         "../../../src/sessions/device.ts"
+      ],
+      "#v1g6uwnw245t": [
+        "../../../src/store/protected.ts"
       ],
       "#wiir3g9f354r": [
         "../../../src/permissions/subject.ts"

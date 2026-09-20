@@ -4,6 +4,12 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 0.5.0
+
+- Added encryption at rest for the two-factor secret, the pending secret and the backup code. `createAuth({ encryptionKey })` wraps the store so those three fields are encrypted on write and decrypted on read, and `createAuth({ cipher })` takes a cipher of your own for records written under an older scheme.
+- Added `createSecretCipher`, AES-256-GCM with a scrypt-derived key, plus `isEncryptedSecret`, `createProtectedStore`, `protectState` and `revealState`.
+- Added `auth.loadSubject(id)` and `auth.readState(subject)`, which return a subject and its state with the secrets revealed.
+
 ## 0.4.0
 
 - Changed alias expansion to run on the requirement as well as the role. A check for `manage:platform.user` now passes for a role that holds every permission that alias names, which is how a product that stores expanded permission lists asks its questions.

@@ -182,6 +182,26 @@ async function verifyPrivilegeRank(dist, store) {
   assert.equal(await auth.permissions.rank("platform", "unknown_role"), -1, "an unknown role ranks weakest");
 }
 
+async function verifyEncryptedSecrets(dist) {
+  const store = dist.createMemoryStore([subject("enc")]);
+  const auth = dist.createAuth({ encryptionKey: "a-long-encryption-key", secret: SECRET, store });
+  const person = await auth.loadSubject("enc");
+  const setup = await auth.twoFactor.begin(person, "Example");
+  const stored = store.subjects.get("enc");
+  assert.equal(stored.auth.twoFactor.pendingSecret === setup.secret, false, "the pending secret is not stored in the clear");
+  assert.equal(dist.isEncryptedSecret(stored.auth.twoFactor.pendingSecret), true, "the pending secret is stored encrypted");
+  const reloaded = await auth.sessions.list(await auth.loadSubject("enc"));
+  assert.equal(Array.isArray(reloaded), true, "a protected store still reads sessions");
+  const revealed = auth.readState(store.subjects.get("enc"));
+  assert.equal(revealed.twoFactor.pendingSecret, setup.secret, "loading a subject reveals the secret");
+  const code = await auth.codes.issueBackupCode(await auth.loadSubject("enc"));
+  const afterCode = store.subjects.get("enc");
+  assert.equal(dist.isEncryptedSecret(afterCode.auth.backupCode.secret), true, "the backup code is stored encrypted");
+  assert.equal(auth.readState(store.subjects.get("enc")).backupCode.secret, code, "the backup code reads back");
+  const other = dist.createSecretCipher("a-different-key");
+  assert.equal(other.decrypt(afterCode.auth.backupCode.secret), "", "another key cannot read the secret");
+}
+
 async function verifyExpress(dist, express, auth, store) {
   const person = store.subjects.get("ada");
   await auth.setPassword(person, "Str0ng!Passw0rd");
@@ -209,6 +229,7 @@ async function main() {
   const config = (await import(path.join(rootDir, "examples", "auth-config.ts"))).default;
   const auth = dist.createAuth({ config, secret: SECRET, store });
 
+  await verifyEncryptedSecrets(dist);
   await verifyPasswords(auth);
   const signed = await verifySignIn(auth, store);
   await verifySessions(auth, store, signed);
