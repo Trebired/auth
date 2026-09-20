@@ -4,6 +4,11 @@ All notable changes to `@trebired/auth` will be documented here.
 
 This project follows semantic versioning once published.
 
+## 0.10.0
+
+- Exported `generateCode` and `codeIsExpired`, so an application that issues its own codes uses the same generator and expiry rule as the package.
+- Exported `describeDevice` and `normalizeSessionDevice`, for an application that describes a device outside a session.
+
 ## 0.9.0
 
 - Added `permissions.expand(scope, permission)`, which returns the permissions a requirement asks for after alias expansion. It answers synchronously, for code that holds a permission list already and cannot await a decision.

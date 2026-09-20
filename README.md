@@ -141,7 +141,7 @@ TOTP follows RFC 6238 with SHA-1, the configured digit count and step, and a dri
 
 ### Root
 
-`createAuth`, `createAttemptLimiter`, `createMemoryStore`, `createProtectedStore`, `createSecretCipher`, `isEncryptedSecret`, `protectState`, `revealState`, `checkPassword`, `hashPassword`, `verifyPassword`, `createPermissionEngine`, `readAuthState`, `isSessionExpired`, `signSessionToken`, `verifySessionToken`, `sessionCookieOptions`, `durationToMs`, `generateSecret`, `totp`, `verifyTotp`, `otpauthUrl`, and the permission key helpers.
+`createAuth`, `createAttemptLimiter`, `createMemoryStore`, `createProtectedStore`, `createSecretCipher`, `isEncryptedSecret`, `protectState`, `revealState`, `checkPassword`, `hashPassword`, `verifyPassword`, `createPermissionEngine`, `readAuthState`, `isSessionExpired`, `signSessionToken`, `verifySessionToken`, `sessionCookieOptions`, `durationToMs`, `generateCode`, `codeIsExpired`, `describeDevice`, `normalizeSessionDevice`, `generateSecret`, `totp`, `verifyTotp`, `otpauthUrl`, and the permission key helpers.
 
 An `Auth` instance exposes `signIn`, `startSession`, `authenticate`, `signOut`, `setPassword`, `changePassword`, `revealBackupCode`, `checkPassword`, `can`, `loadSubject`, `readState`, `attempts`, `cookieOptions`, `config`, and the `sessions`, `twoFactor`, `codes` and `permissions` managers.
 
